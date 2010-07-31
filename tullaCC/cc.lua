@@ -116,8 +116,8 @@ local function Timer_Create(cd)
 end
 
 --hook the SetCooldown method of all cooldown frames
---ActionButton1Cooldown is used here
---since its likely to always exist and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
+--ActionButton1Cooldown is used here since its likely to always exist 
+--and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
 hooksecurefunc(getmetatable(ActionButton1Cooldown).__index, 'SetCooldown', function(cd, start, duration)
 	--start timer
 	if start > 0 and duration > MIN_DURATION then
