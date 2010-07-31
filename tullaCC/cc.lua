@@ -10,6 +10,7 @@
 local ICON_SIZE = 36 --the normal size for an icon (don't change this)
 local FONT_FACE = STANDARD_TEXT_FONT --what font to use
 local FONT_SIZE = 18 --the base font size to use at a scale of 1
+local FONT_COLOR = {1, 0.92, 0}
 local MIN_SCALE = 0.5 --the minimum scale we want to show cooldown counts at, anything below this will be hidden
 local MIN_DURATION = 3 --the minimum duration to show cooldown text for
 local DAY, HOUR, MINUTE = 86400, 3600, 60 --used for formatting text
@@ -17,7 +18,6 @@ local DAYISH, HOURISH, MINUTEISH = 3600 * 23.5, 60 * 59.5, 59.5 --used for forma
 local HALFDAYISH, HALFHOURISH, HALFMINUTEISH = DAY/2 + 0.5, HOUR/2 + 0.5, MINUTE/2 + 0.5 --used for calculating next update times
 
 --local bindings!
-local format = string.format
 local floor = math.floor
 local min = math.min
 local round = function(x) return floor(x + 0.5) end
@@ -56,7 +56,8 @@ local function Timer_ForceUpdate(self)
 	self:Show()
 end
 
---scale text when a button's size changes
+--adjust font size whenever the timer's parent size changes
+--hide if it gets too tiny
 local function Timer_OnSizeChanged(self, width, height)
 	local fontScale = round(width) / ICON_SIZE
 	if fontScale == self.fontScale then
@@ -74,6 +75,8 @@ local function Timer_OnSizeChanged(self, width, height)
 	end
 end
 
+--update timer text, if it needs to be
+--hide the timer if done
 local function Timer_OnUpdate(self, elapsed)
 	if self.nextUpdate > 0 then
 		self.nextUpdate = self.nextUpdate - elapsed
@@ -89,8 +92,11 @@ local function Timer_OnUpdate(self, elapsed)
 	end
 end
 
+--returns a new timer object
 local function Timer_Create(cd)
-	local scaler = CreateFrame('Frame', nil, cd) --needed since OnSizeChanged has funny triggering if the parent is not visible for some reason
+	--a frame to watch for OnSizeChanged events
+	--needed since OnSizeChanged has funny triggering if the frame with the handler is not shown
+	local scaler = CreateFrame('Frame', nil, cd)
 	scaler:SetAllPoints(cd)
 
 	local timer = CreateFrame('Frame', nil, scaler); timer:Hide()
@@ -99,7 +105,7 @@ local function Timer_Create(cd)
 
 	local text = timer:CreateFontString(nil, 'OVERLAY')
 	text:SetPoint('CENTER', 0, 0)
-	text:SetTextColor(1, 0.92, 0)
+	text:SetTextColor(unpack(FONT_COLOR))
 	timer.text = text
 
 	Timer_OnSizeChanged(timer, scaler:GetSize())
@@ -109,7 +115,9 @@ local function Timer_Create(cd)
 	return timer
 end
 
---ActionButton1Cooldown here, is something we think will always exist
+--hook the SetCooldown method of all cooldown frames
+--ActionButton1Cooldown is used here
+--since its likely to always exist and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
 hooksecurefunc(getmetatable(ActionButton1Cooldown).__index, 'SetCooldown', function(cd, start, duration)
 	--start timer
 	if start > 0 and duration > MIN_DURATION then
