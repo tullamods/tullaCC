@@ -1,7 +1,7 @@
 --[[
 	tullaCooldownCount
 		A basic cooldown count addon
-		
+
 		The purpose of this addon is mainly for me to test performance optimizations
 		and also for people who don't care about the extra features of OmniCC
 --]]
@@ -26,7 +26,7 @@ local GetTime = GetTime
 --returns both what text to display, and how long until the next update
 local function getTimeText(s)
 	--format text as seconds when at 90 seconds or below
-	if s < MINUTEISH then 
+	if s < MINUTEISH then
 		local seconds = round(s)
 		return seconds, s - (seconds - 0.51)
 	--format text as minutes when below an hour
@@ -38,9 +38,39 @@ local function getTimeText(s)
 		local hours = round(s/HOUR)
 		return hours .. 'h', hours > 1 and (s - (hours*HOUR - HALFHOURISH)) or (s - HOURISH)
 	--format text as days
-	else 
+	else
 		local days = round(s/DAY)
 		return days .. 'd', days > 1 and (s - (days*DAY - HALFDAYISH)) or (s - DAYISH)
+	end
+end
+
+--stops the timer
+local function Timer_Stop(self)
+	self.enabled = nil
+	self:Hide()
+end
+
+--forces the given timer to update on the next frame
+local function Timer_ForceUpdate(self)
+	self.nextUpdate = 0
+	self:Show()
+end
+
+--scale text when a button's size changes
+local function Timer_OnSizeChanged(self, width, height)
+	local fontScale = round(width) / ICON_SIZE
+	if fontScale == self.fontScale then
+		return
+	end
+
+	self.fontScale = fontScale
+	if fontScale < MIN_SCALE then
+		self:Hide()
+	else
+		self.text:SetFont(FONT_FACE, fontScale * FONT_SIZE, 'OUTLINE')
+		if self.enabled then
+			Timer_ForceUpdate(self)
+		end
 	end
 end
 
@@ -54,52 +84,46 @@ local function Timer_OnUpdate(self, elapsed)
 			self.text:SetText(time)
 			self.nextUpdate = nextUpdate
 		else
-			self.text:Hide()
-			self.nextUpdate = 0
-			self:SetScript('OnUpdate', nil)
+			Timer_Stop(self)
 		end
 	end
 end
 
-local function Timer_OnSizeChanged(self)
-	if (self:GetParent():GetWidth() / ICON_SIZE) < MIN_SCALE then
-		self.text:Hide()
-		self:SetScript('OnUpdate', nil)
-	else
-		self.text:Show()
-		self:SetScript('OnUpdate', Timer_OnUpdate)
-	end
-end
+local function Timer_Create(cd)
+	local scaler = CreateFrame('Frame', nil, cd) --needed since OnSizeChanged has funny triggering if the parent is not visible for some reason
+	scaler:SetAllPoints(cd)
 
-local function Timer_Create(self)
-	local text = self:CreateFontString(nil, 'OVERLAY'); text:Hide()
-	text:SetPoint('CENTER', 0, 36)
-	text:SetFont(FONT_FACE, FONT_SIZE, 'OUTLINE')
+	local timer = CreateFrame('Frame', nil, scaler); timer:Hide()
+	timer:SetAllPoints(scaler)
+	timer:SetScript('OnUpdate', Timer_OnUpdate)
+
+	local text = timer:CreateFontString(nil, 'OVERLAY')
+	text:SetPoint('CENTER', 0, 0)
 	text:SetTextColor(1, 0.92, 0)
-	self.text = text
-	
-	self:SetScript('OnSizeChanged', Timer_OnSizeChanged)
-	return text
+	timer.text = text
+
+	Timer_OnSizeChanged(timer, scaler:GetSize())
+	scaler:SetScript('OnSizeChanged', function(self, ...) Timer_OnSizeChanged(timer, ...) end)
+
+	cd.timer = timer
+	return timer
 end
 
 --ActionButton1Cooldown here, is something we think will always exist
-hooksecurefunc(getmetatable(ActionButton1Cooldown).__index, 'SetCooldown', function(self, start, duration)
+hooksecurefunc(getmetatable(ActionButton1Cooldown).__index, 'SetCooldown', function(cd, start, duration)
 	--start timer
 	if start > 0 and duration > MIN_DURATION then
-		self.start = start
-		self.duration = duration
-		self.nextUpdate = 0
-
-		local text = self.text or Timer_Create(self)
-		if text then
-			text:Show()
-			self:SetScript('OnUpdate', Timer_OnUpdate)
-		end
+		local timer = cd.timer or Timer_Create(cd)
+		timer.start = start
+		timer.duration = duration
+		timer.enabled = true
+		timer.nextUpdate = 0
+		if timer.fontScale >= MIN_SCALE then timer:Show() end
 	--stop timer
-	else	
-		local text = self.text
-		if text then
-			text:Hide()
+	else
+		local timer = cd.timer
+		if timer then
+			Timer_Stop(timer)
 		end
 	end
 end)
