@@ -7,6 +7,7 @@
 --]]
 
 --constants!
+OmniCC = true --hack to work around detection from other addons for OmniCC
 local ICON_SIZE = 36 --the normal size for an icon (don't change this)
 local FONT_FACE = STANDARD_TEXT_FONT --what font to use
 local FONT_SIZE = 18 --the base font size to use at a scale of 1
@@ -69,6 +70,8 @@ local function Timer_OnSizeChanged(self, width, height)
 		self:Hide()
 	else
 		self.text:SetFont(FONT_FACE, fontScale * FONT_SIZE, 'OUTLINE')
+		self.text:SetShadowColor(0, 0, 0, 0.5)
+		self.text:SetShadowOffset(2, -2)
 		if self.enabled then
 			Timer_ForceUpdate(self)
 		end
