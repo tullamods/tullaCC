@@ -7,7 +7,7 @@
 --]]
 
 --constants!
-OmniCC = true --hack to work around detection from other addons for OmniCC
+OmniCC = OmniCC or true --hack to work around detection from other addons for OmniCC
 local ICON_SIZE = 36 --the normal size for an icon (don't change this)
 local FONT_FACE = STANDARD_TEXT_FONT --what font to use
 local FONT_SIZE = 18 --the base font size to use at a scale of 1
