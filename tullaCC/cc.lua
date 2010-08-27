@@ -19,6 +19,7 @@ local DAYISH, HOURISH, MINUTEISH = 3600 * 23.5, 60 * 59.5, 59.5 --used for forma
 local HALFDAYISH, HALFHOURISH, HALFMINUTEISH = DAY/2 + 0.5, HOUR/2 + 0.5, MINUTE/2 + 0.5 --used for calculating next update times
 
 --local bindings!
+local format = string.format
 local floor = math.floor
 local min = math.min
 local round = function(x) return floor(x + 0.5) end
@@ -29,19 +30,22 @@ local function getTimeText(s)
 	--format text as seconds when at 90 seconds or below
 	if s < MINUTEISH then
 		local seconds = round(s)
-		return seconds, s - (seconds - 0.51)
+		if seconds > 5 then
+			return format('|cffffff00%d|r', seconds), s - (seconds - 0.51)
+		end
+		return format('|cffff0000%d|r', seconds), s - (seconds - 0.51)
 	--format text as minutes when below an hour
 	elseif s < HOURISH then
 		local minutes = round(s/MINUTE)
-		return minutes .. 'm', minutes > 1 and (s - (minutes*MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
+		return format('|cffffffff%dm|r', minutes), minutes > 1 and (s - (minutes*MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
 	--format text as hours when below a day
 	elseif s < DAYISH then
 		local hours = round(s/HOUR)
-		return hours .. 'h', hours > 1 and (s - (hours*HOUR - HALFHOURISH)) or (s - HOURISH)
+		return format('|cffccccff%dh|r', hours), hours > 1 and (s - (hours*HOUR - HALFHOURISH)) or (s - HOURISH)
 	--format text as days
 	else
 		local days = round(s/DAY)
-		return days .. 'd', days > 1 and (s - (days*DAY - HALFDAYISH)) or (s - DAYISH)
+		return format('|cffcccccc%dd|r', days), days > 1 and (s - (days*DAY - HALFDAYISH)) or (s - DAYISH)
 	end
 end
 
@@ -70,8 +74,8 @@ local function Timer_OnSizeChanged(self, width, height)
 		self:Hide()
 	else
 		self.text:SetFont(FONT_FACE, fontScale * FONT_SIZE, 'OUTLINE')
-		self.text:SetShadowColor(0, 0, 0, 0.5)
-		self.text:SetShadowOffset(2, -2)
+		self.text:SetShadowColor(0, 0, 0, 0.8)
+		self.text:SetShadowOffset(1, -1)
 		if self.enabled then
 			Timer_ForceUpdate(self)
 		end
@@ -86,9 +90,14 @@ local function Timer_OnUpdate(self, elapsed)
 	else
 		local remain = self.duration - (GetTime() - self.start)
 		if round(remain) > 0 then
-			local time, nextUpdate = getTimeText(remain)
-			self.text:SetText(time)
-			self.nextUpdate = nextUpdate
+			if (self.fontScale * self:GetEffectiveScale()) < MIN_SCALE then
+				self.text:SetText('')
+				self.nextUpdate  = 1
+			else
+				local time, nextUpdate = getTimeText(remain)
+				self.text:SetText(time)
+				self.nextUpdate = nextUpdate
+			end
 		else
 			Timer_Stop(self)
 		end
