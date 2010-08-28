@@ -95,7 +95,7 @@ local function Timer_OnUpdate(self, elapsed)
 	else
 		local remain = self.duration - (GetTime() - self.start)
 		if round(remain) > 0 then
-			if (self.fontScale * self:GetEffectiveScale()) < MIN_SCALE then
+			if (self.fontScale * self:GetEffectiveScale() / UIParent:GetScale()) < MIN_SCALE then
 				self.text:SetText('')
 				self.nextUpdate  = 1
 			else
