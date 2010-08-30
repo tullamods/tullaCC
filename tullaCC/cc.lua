@@ -14,17 +14,17 @@ local DAYISH, HOURISH, MINUTEISH = 3600 * 23.5, 60 * 59.5, 59.5 --used for forma
 local HALFDAYISH, HALFHOURISH, HALFMINUTEISH = DAY/2 + 0.5, HOUR/2 + 0.5, MINUTE/2 + 0.5 --used for calculating next update times
 
 --configuration settings
-local FONT_FACE = STANDARD_TEXT_FONT --what font to use
-local FONT_SIZE = 18 --the base font size to use at a scale of 1
-local FONT_COLOR = {1, 0.92, 0}
-local MIN_SCALE = 0.5 --the minimum scale we want to show cooldown counts at, anything below this will be hidden
-local MIN_DURATION = 3 --the minimum duration to show cooldown text for
-local EXPIRING_DURATION = 5 --the minimum number of seconds a cooldown must be to use to display in the expiring format
-local EXPIRING_FORMAT = '|cffff0000%d|r' --format for timers that are soon to expire
-local SECONDS_FORMAT = '|cffffff00%d|r' --format for timers that have seconds remaining
-local MINUTES_FORMAT = '|cffffffff%dm|r' --format for timers that have minutes remaining
-local HOURS_FORMAT = '|cff66ffff%dh|r' --format for timers that have hours remaining
-local DAYS_FORMAT = '|cff6666ff%dh|r' --format for timers that have days remaining
+local C = select(2, ...) --pull in the addon table
+local FONT_FACE = C.fontFace --what font to use
+local FONT_SIZE = C.fontSize --the base font size to use at a scale of 1
+local MIN_SCALE = C.minScale--the minimum scale we want to show cooldown counts at, anything below this will be hidden
+local MIN_DURATION = C.minDuration --the minimum duration to show cooldown text for
+local EXPIRING_DURATION = C.expiringDuration --the minimum number of seconds a cooldown must be to use to display in the expiring format
+local EXPIRING_FORMAT = C.expiringFormat --format for timers that are soon to expire
+local SECONDS_FORMAT = C.secondsFormat --format for timers that have seconds remaining
+local MINUTES_FORMAT = C.minutesFormat --format for timers that have minutes remaining
+local HOURS_FORMAT = C.hoursFormat --format for timers that have hours remaining
+local DAYS_FORMAT = C.daysFormat --format for timers that have days remaining
 
 --local bindings!
 local floor = math.floor
@@ -122,7 +122,6 @@ local function Timer_Create(cd)
 
 	local text = timer:CreateFontString(nil, 'OVERLAY')
 	text:SetPoint('CENTER', 0, 0)
-	text:SetTextColor(unpack(FONT_COLOR))
 	timer.text = text
 
 	Timer_OnSizeChanged(timer, scaler:GetSize())
