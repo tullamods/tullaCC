@@ -10,7 +10,7 @@ C.fontFace = STANDARD_TEXT_FONT  --what font to use
 C.fontSize = 18  --the base font size to use at a scale of 1
 
 --display settings
-C.minScale = 0.6  --the minimum duration to show cooldown text for
+C.minScale = 0.6  --the minimum size ratio of an object relative to an action button for a cooldown text to display.  
 C.minDuration = 3 --the minimum number of seconds a cooldown must be to use to display in the expiring format
 C.expiringDuration = 5  --the minimum number of seconds a cooldown must be to use to display in the expiring format
 
