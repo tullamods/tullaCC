@@ -54,15 +54,43 @@ local function getTimeText(s)
 	end
 end
 
+
+local function Timer_SetNextUpdate(self, nextUpdate)
+	self.updater:GetAnimations():SetDuration(nextUpdate)
+	if self.updater:IsPlaying() then
+		self.updater:Stop()
+	end
+	self.updater:Play()
+end
+
 --stops the timer
 local function Timer_Stop(self)
 	self.enabled = nil
+	if self.updater:IsPlaying() then
+		self.updater:Stop()
+	end
 	self:Hide()
+end
+
+local function Timer_UpdateText(self)
+	local remain = self.duration - (GetTime() - self.start)
+	if round(remain) > 0 then
+		if (self.fontScale * self:GetEffectiveScale() / UIParent:GetScale()) < MIN_SCALE then
+			self.text:SetText('')
+			Timer_SetNextUpdate(self, 1)
+		else
+			local formatStr, time, nextUpdate = getTimeText(remain)
+			self.text:SetFormattedText(formatStr, time)
+			Timer_SetNextUpdate(self, nextUpdate)
+		end
+	else
+		Timer_Stop(self)
+	end
 end
 
 --forces the given timer to update on the next frame
 local function Timer_ForceUpdate(self)
-	self.nextUpdate = 0
+	Timer_UpdateText(self)
 	self:Show()
 end
 
@@ -87,28 +115,6 @@ local function Timer_OnSizeChanged(self, width, height)
 	end
 end
 
---update timer text, if it needs to be
---hide the timer if done
-local function Timer_OnUpdate(self, elapsed)
-	if self.nextUpdate > 0 then
-		self.nextUpdate = self.nextUpdate - elapsed
-	else
-		local remain = self.duration - (GetTime() - self.start)
-		if round(remain) > 0 then
-			if (self.fontScale * self:GetEffectiveScale() / UIParent:GetScale()) < MIN_SCALE then
-				self.text:SetText('')
-				self.nextUpdate  = 1
-			else
-				local formatStr, time, nextUpdate = getTimeText(remain)
-				self.text:SetFormattedText(formatStr, time)
-				self.nextUpdate = nextUpdate
-			end
-		else
-			Timer_Stop(self)
-		end
-	end
-end
-
 --returns a new timer object
 local function Timer_Create(cd)
 	--a frame to watch for OnSizeChanged events
@@ -118,10 +124,17 @@ local function Timer_Create(cd)
 
 	local timer = CreateFrame('Frame', nil, scaler); timer:Hide()
 	timer:SetAllPoints(scaler)
-	timer:SetScript('OnUpdate', Timer_OnUpdate)
+	
+	local updater = timer:CreateAnimationGroup()
+	updater:SetLooping('NONE')
+	updater:SetScript('OnFinished', function(self) Timer_UpdateText(timer) end)
+	
+	local a = updater:CreateAnimation('Animation'); a:SetOrder(1)
+	timer.updater = updater	
 
 	local text = timer:CreateFontString(nil, 'OVERLAY')
 	text:SetPoint('CENTER', 0, 0)
+	text:SetFont(FONT_FACE, FONT_SIZE, 'OUTLINE')
 	timer.text = text
 
 	Timer_OnSizeChanged(timer, scaler:GetSize())
@@ -141,7 +154,7 @@ hooksecurefunc(getmetatable(ActionButton1Cooldown).__index, 'SetCooldown', funct
 		timer.start = start
 		timer.duration = duration
 		timer.enabled = true
-		timer.nextUpdate = 0
+		Timer_UpdateText(timer)
 		if timer.fontScale >= MIN_SCALE then timer:Show() end
 	--stop timer
 	else
