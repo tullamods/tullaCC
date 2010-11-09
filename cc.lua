@@ -149,7 +149,7 @@ end
 --and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
 hooksecurefunc(getmetatable(ActionButton1Cooldown).__index, 'SetCooldown', function(cd, start, duration)
 	--start timer
-	if start > 0 and duration > MIN_DURATION and (not self.noCooldownCount) then
+	if start > 0 and duration > MIN_DURATION and (not cd.noCooldownCount) then
 		local timer = cd.timer or Timer_Create(cd)
 		timer.start = start
 		timer.duration = duration
