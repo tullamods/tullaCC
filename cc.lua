@@ -6,15 +6,24 @@
 		and also for people who don't care about the extra features of OmniCC
 --]]
 
---constants!
+--hacks!
 OmniCC = OmniCC or true --hack to work around detection from other addons for OmniCC
+
+--local bindings!
+local C = select(2, ...) --pull in the addon table
+local UIParent = _G['UIParent']
+local GetTime = _G['GetTime']
+local floor = math.floor
+local min = math.min
+local round = function(x) return floor(x + 0.5) end
+
+--sexy constants!
 local ICON_SIZE = 36 --the normal size for an icon (don't change this)
 local DAY, HOUR, MINUTE = 86400, 3600, 60 --used for formatting text
 local DAYISH, HOURISH, MINUTEISH = 3600 * 23.5, 60 * 59.5, 59.5 --used for formatting text at transition points
 local HALFDAYISH, HALFHOURISH, HALFMINUTEISH = DAY/2 + 0.5, HOUR/2 + 0.5, MINUTE/2 + 0.5 --used for calculating next update times
 
 --configuration settings
-local C = select(2, ...) --pull in the addon table
 local FONT_FACE = C.fontFace --what font to use
 local FONT_SIZE = C.fontSize --the base font size to use at a scale of 1
 local MIN_SCALE = C.minScale--the minimum scale we want to show cooldown counts at, anything below this will be hidden
@@ -25,12 +34,6 @@ local SECONDS_FORMAT = C.secondsFormat --format for timers that have seconds rem
 local MINUTES_FORMAT = C.minutesFormat --format for timers that have minutes remaining
 local HOURS_FORMAT = C.hoursFormat --format for timers that have hours remaining
 local DAYS_FORMAT = C.daysFormat --format for timers that have days remaining
-
---local bindings!
-local floor = math.floor
-local min = math.min
-local round = function(x) return floor(x + 0.5) end
-local GetTime = GetTime
 
 --returns both what text to display, and how long until the next update
 local function getTimeText(s)
@@ -53,7 +56,6 @@ local function getTimeText(s)
 		return DAYS_FORMAT, days,  days > 1 and (s - (days*DAY - HALFDAYISH)) or (s - DAYISH)
 	end
 end
-
 
 local function Timer_SetNextUpdate(self, nextUpdate)
 	self.updater:GetAnimations():SetDuration(nextUpdate)
