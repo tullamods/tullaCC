@@ -2,8 +2,8 @@
 	Curation settings for tullaCC
 --]]
 
-
-local C = select(2, ...) --retrieve addon table
+local AddonName, Addon = ...
+local C = {}; Addon.Config = C
 
 --font settings
 C.fontFace = STANDARD_TEXT_FONT  --what font to use

@@ -9,8 +9,12 @@
 --hacks!
 OmniCC = OmniCC or true --hack to work around detection from other addons for OmniCC
 
+local AddonName, Addon = ...
+local Timer = {}; Addon.Timer = Timer
+
+
 --local bindings!
-local C = select(2, ...) --pull in the addon table
+local C = Addon.Config --pull in the addon table
 local UIParent = _G['UIParent']
 local GetTime = _G['GetTime']
 local floor = math.floor
@@ -57,7 +61,7 @@ local function getTimeText(s)
 	end
 end
 
-local function Timer_SetNextUpdate(self, nextUpdate)
+function Timer.SetNextUpdate(self, nextUpdate)
 	self.updater:GetAnimations():SetDuration(nextUpdate)
 	if self.updater:IsPlaying() then
 		self.updater:Stop()
@@ -66,7 +70,7 @@ local function Timer_SetNextUpdate(self, nextUpdate)
 end
 
 --stops the timer
-local function Timer_Stop(self)
+function Timer.Stop(self)
 	self.enabled = nil
 	if self.updater:IsPlaying() then
 		self.updater:Stop()
@@ -74,31 +78,31 @@ local function Timer_Stop(self)
 	self:Hide()
 end
 
-local function Timer_UpdateText(self)
+function Timer.UpdateText(self)
 	local remain = self.duration - (GetTime() - self.start)
 	if round(remain) > 0 then
 		if (self.fontScale * self:GetEffectiveScale() / UIParent:GetScale()) < MIN_SCALE then
 			self.text:SetText('')
-			Timer_SetNextUpdate(self, 1)
+			Timer.SetNextUpdate(self, 1)
 		else
 			local formatStr, time, nextUpdate = getTimeText(remain)
 			self.text:SetFormattedText(formatStr, time)
-			Timer_SetNextUpdate(self, nextUpdate)
+			Timer.SetNextUpdate(self, nextUpdate)
 		end
 	else
-		Timer_Stop(self)
+		Timer.Stop(self)
 	end
 end
 
 --forces the given timer to update on the next frame
-local function Timer_ForceUpdate(self)
-	Timer_UpdateText(self)
+function Timer.ForceUpdate(self)
+	Timer.UpdateText(self)
 	self:Show()
 end
 
 --adjust font size whenever the timer's parent size changes
 --hide if it gets too tiny
-local function Timer_OnSizeChanged(self, width, height)
+function Timer.OnSizeChanged(self, width, height)
 	local fontScale = round(width) / ICON_SIZE
 	if fontScale == self.fontScale then
 		return
@@ -112,13 +116,13 @@ local function Timer_OnSizeChanged(self, width, height)
 		self.text:SetShadowColor(0, 0, 0, 0.8)
 		self.text:SetShadowOffset(1, -1)
 		if self.enabled then
-			Timer_ForceUpdate(self)
+			Timer.ForceUpdate(self)
 		end
 	end
 end
 
 --returns a new timer object
-local function Timer_Create(cd)
+function Timer.Create(cd)
 	--a frame to watch for OnSizeChanged events
 	--needed since OnSizeChanged has funny triggering if the frame with the handler is not shown
 	local scaler = CreateFrame('Frame', nil, cd)
@@ -129,7 +133,7 @@ local function Timer_Create(cd)
 	
 	local updater = timer:CreateAnimationGroup()
 	updater:SetLooping('NONE')
-	updater:SetScript('OnFinished', function(self) Timer_UpdateText(timer) end)
+	updater:SetScript('OnFinished', function(self) Timer.UpdateText(timer) end)
 	
 	local a = updater:CreateAnimation('Animation'); a:SetOrder(1)
 	timer.updater = updater	
@@ -139,30 +143,32 @@ local function Timer_Create(cd)
 	text:SetFont(FONT_FACE, FONT_SIZE, 'OUTLINE')
 	timer.text = text
 
-	Timer_OnSizeChanged(timer, scaler:GetSize())
-	scaler:SetScript('OnSizeChanged', function(self, ...) Timer_OnSizeChanged(timer, ...) end)
+	Timer.OnSizeChanged(timer, scaler:GetSize())
+	scaler:SetScript('OnSizeChanged', function(self, ...) Timer.OnSizeChanged(timer, ...) end)
 
 	cd.timer = timer
 	return timer
 end
 
---hook the SetCooldown method of all cooldown frames
---ActionButton1Cooldown is used here since its likely to always exist
---and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
-hooksecurefunc(getmetatable(ActionButton1Cooldown).__index, 'SetCooldown', function(cd, start, duration)
+function Timer.Start(cd, start, duration)
 	--start timer
 	if start > 0 and duration > MIN_DURATION and (not cd.noCooldownCount) then
-		local timer = cd.timer or Timer_Create(cd)
+		local timer = cd.timer or Timer.Create(cd)
 		timer.start = start
 		timer.duration = duration
 		timer.enabled = true
-		Timer_UpdateText(timer)
+		Timer.UpdateText(timer)
 		if timer.fontScale >= MIN_SCALE then timer:Show() end
 	--stop timer
 	else
 		local timer = cd.timer
 		if timer then
-			Timer_Stop(timer)
+			Timer.Stop(timer)
 		end
 	end
-end)
+end
+
+--hook the SetCooldown method of all cooldown frames
+--ActionButton1Cooldown is used here since its likely to always exist
+--and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
+hooksecurefunc(getmetatable(ActionButton1Cooldown).__index, 'SetCooldown', Timer.Start)
