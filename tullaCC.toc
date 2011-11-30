@@ -2,7 +2,7 @@
 ## Title: tullaCooldownCount
 ## Notes: Adds text to cooldowns
 ## Author: Tuller
-## Version: 4.3.0
+## Version: 4.3.1
 config.lua
 cc.lua
 compat43.lua
