@@ -6,9 +6,6 @@
 		and also for people who don't care about the extra features of OmniCC
 --]]
 
---hacks!
-OmniCC = OmniCC or true --hack to work around detection from other addons for OmniCC
-
 local AddonName, Addon = ...
 local Timer = {}; Addon.Timer = Timer
 
