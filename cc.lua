@@ -147,9 +147,11 @@ function Timer.Create(cd)
 	return timer
 end
 
-function Timer.Start(cd, start, duration)
+function Timer.Start(cd, start, duration, charges, maxCharges)
+	local remainingCharges = charges or 0
+	
 	--start timer
-	if start > 0 and duration > MIN_DURATION and (not cd.noCooldownCount) then
+	if start > 0 and duration > MIN_DURATION and remainingCharges == 0 and (not cd.noCooldownCount) then
 		local timer = cd.timer or Timer.Create(cd)
 		timer.start = start
 		timer.duration = duration
