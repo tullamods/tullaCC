@@ -69,6 +69,11 @@ end
 --stops the timer
 function Timer.Stop(self)
 	self.enabled = nil
+	self.start = nil
+	self.duration = nil
+	self.charges = nil
+	self.maxCharges = nil
+
 	if self.updater:IsPlaying() then
 		self.updater:Stop()
 	end
@@ -153,9 +158,13 @@ function Timer.Start(cd, start, duration, charges, maxCharges)
 	--start timer
 	if start > 0 and duration > MIN_DURATION and remainingCharges == 0 and (not cd.noCooldownCount) then
 		local timer = cd.timer or Timer.Create(cd)
+		
+		timer.enabled = true
 		timer.start = start
 		timer.duration = duration
-		timer.enabled = true
+		timer.charges = remainingCharges
+		timer.maxCharges = maxCharges
+
 		Timer.UpdateText(timer)
 		if timer.fontScale >= MIN_SCALE then timer:Show() end
 	--stop timer

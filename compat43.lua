@@ -25,10 +25,14 @@ end
 --returns true if the cooldown timer should be updated and false otherwise
 local function cooldown_ShouldUpdateTimer(self, start, duration, charges, maxCharges)
 	local timer = self.timer
-	if not timer then
-		return true
-	end
-	return not(timer.start == start or timer.charges == charges or timer.maxCharges == maxCharges)
+
+	return not(
+		timer 
+		and timer.start == start 
+		and timer.duration == duration 
+		and timer.charges == charges 
+		and timer.maxCharges == maxCharges
+	)
 end
 
 local function cooldown_Update(self)
