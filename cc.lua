@@ -8,6 +8,7 @@
 
 local AddonName, Addon = ...
 local Timer = {}; Addon.Timer = Timer
+local timers = {}
 
 
 --local bindings!
@@ -124,11 +125,11 @@ function Timer.OnSizeChanged(self, width, height)
 end
 
 --returns a new timer object
-function Timer.Create(cd)
+function Timer.Create(cooldown)
 	--a frame to watch for OnSizeChanged events
 	--needed since OnSizeChanged has funny triggering if the frame with the handler is not shown
-	local scaler = CreateFrame('Frame', nil, cd)
-	scaler:SetAllPoints(cd)
+	local scaler = CreateFrame('Frame', nil, cooldown)
+	scaler:SetAllPoints(cooldown)
 
 	local timer = CreateFrame('Frame', nil, scaler); timer:Hide()
 	timer:SetAllPoints(scaler)
@@ -148,16 +149,17 @@ function Timer.Create(cd)
 	Timer.OnSizeChanged(timer, scaler:GetSize())
 	scaler:SetScript('OnSizeChanged', function(self, ...) Timer.OnSizeChanged(timer, ...) end)
 
-	cd.timer = timer
+	timers[cooldown] = timer
+
 	return timer
 end
 
-function Timer.Start(cd, start, duration, charges, maxCharges)
+function Timer.Start(cooldown, start, duration, charges, maxCharges)
 	local remainingCharges = charges or 0
 	
 	--start timer
-	if start > 0 and duration > MIN_DURATION and remainingCharges == 0 and (not cd.noCooldownCount) then
-		local timer = cd.timer or Timer.Create(cd)
+	if start > 0 and duration > MIN_DURATION and remainingCharges == 0 and (not cooldown.noCooldownCount) then
+		local timer = timers[cooldown] or Timer.Create(cooldown)
 		
 		timer.enabled = true
 		timer.start = start
@@ -169,14 +171,27 @@ function Timer.Start(cd, start, duration, charges, maxCharges)
 		if timer.fontScale >= MIN_SCALE then timer:Show() end
 	--stop timer
 	else
-		local timer = cd.timer
+		local timer = timers[cooldown]
 		if timer then
 			Timer.Stop(timer)
 		end
 	end
 end
 
---hook the SetCooldown method of all cooldown frames
---ActionButton1Cooldown is used here since its likely to always exist
---and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
-hooksecurefunc(getmetatable(_G['ActionButton1Cooldown']).__index, 'SetCooldown', Timer.Start)
+
+do
+	local f = CreateFrame('Frame'); f:Hide()
+
+	f:SetScript('OnEvent' function()
+		for cooldown, timer in pairs(timers) do
+			Timer.ForceUpdate(timer)
+		end
+	end)
+
+	f:RegisterEvent('PLAYER_ENTERING_WORLD')
+
+	--hook the SetCooldown method of all cooldown frames
+	--ActionButton1Cooldown is used here since its likely to always exist
+	--and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
+	hooksecurefunc(getmetatable(_G['ActionButton1Cooldown']).__index, 'SetCooldown', Timer.Start)	
+end

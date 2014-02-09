@@ -47,31 +47,40 @@ local function cooldown_Update(self)
 	end
 end
 
-local abEventWatcher = CreateFrame('Frame'); abEventWatcher:Hide()
-abEventWatcher:SetScript('OnEvent', function(self, event)
-	for cooldown in pairs(active) do
-		cooldown_Update(cooldown)
-	end
-end)
-abEventWatcher:RegisterEvent('ACTIONBAR_UPDATE_COOLDOWN')
+do
+	local watcher = CreateFrame('Frame')
+
+	watcher:Hide()
+
+	watcher:SetScript('OnEvent', function(self, event)
+		for cooldown in pairs(active) do
+			cooldown_Update(cooldown)
+		end
+	end)
+
+	watcher:RegisterEvent('ACTIONBAR_UPDATE_COOLDOWN')
+end
 
 
 --[[ hook action button registration ]]--
 
-local hooked = {}
+do
+	local hooked = {}
 
-local function actionButton_Register(frame)
-	local cooldown = frame.cooldown
-	if not hooked[cooldown] then
-		cooldown:HookScript('OnShow', cooldown_OnShow)
-		cooldown:HookScript('OnHide', cooldown_OnHide)
-		hooked[cooldown] = true
+	local function actionButton_Register(frame)
+		local cooldown = frame.cooldown
+		
+		if not hooked[cooldown] then
+			cooldown:HookScript('OnShow', cooldown_OnShow)
+			cooldown:HookScript('OnHide', cooldown_OnHide)
+			hooked[cooldown] = true
+		end
 	end
-end
 
-if ActionBarButtonEventsFrame.frames then
-	for i, frame in pairs(ActionBarButtonEventsFrame.frames) do
-		actionButton_Register(frame)
+	if ActionBarButtonEventsFrame.frames then
+		for i, frame in pairs(ActionBarButtonEventsFrame.frames) do
+			actionButton_Register(frame)
+		end
 	end
+	hooksecurefunc('ActionBarButtonEventsFrame_RegisterFrame', actionButton_Register)
 end
-hooksecurefunc('ActionBarButtonEventsFrame_RegisterFrame', actionButton_Register)
