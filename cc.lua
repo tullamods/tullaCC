@@ -59,12 +59,8 @@ local function getTimeText(s)
 	end
 end
 
-function Timer.SetNextUpdate(self, nextUpdate)
-	self.updater:GetAnimations():SetDuration(nextUpdate)
-	if self.updater:IsPlaying() then
-		self.updater:Stop()
-	end
-	self.updater:Play()
+function Timer.SetNextUpdate(self, duration)
+	C_Timer.After(duration, self.OnTimerDone)
 end
 
 --stops the timer
@@ -74,23 +70,20 @@ function Timer.Stop(self)
 	self.duration = nil
 	self.charges = nil
 	self.maxCharges = nil
-
-	if self.updater:IsPlaying() then
-		self.updater:Stop()
-	end
 	self:Hide()
 end
 
 function Timer.UpdateText(self)
-	local remain = self.duration - (GetTime() - self.start)
+	local remain = self.enabled and (self.duration - (GetTime() - self.start)) or 0
+
 	if round(remain) > 0 then
 		if (self.fontScale * self:GetEffectiveScale() / UIParent:GetScale()) < MIN_SCALE then
 			self.text:SetText('')
 			Timer.SetNextUpdate(self, 1)
 		else
-			local formatStr, time, nextUpdate = getTimeText(remain)
+			local formatStr, time, timeUntilNextUpdate = getTimeText(remain)
 			self.text:SetFormattedText(formatStr, time)
-			Timer.SetNextUpdate(self, nextUpdate)
+			Timer.SetNextUpdate(self, timeUntilNextUpdate)
 		end
 	else
 		Timer.Stop(self)
@@ -133,13 +126,8 @@ function Timer.Create(cooldown)
 
 	local timer = CreateFrame('Frame', nil, scaler); timer:Hide()
 	timer:SetAllPoints(scaler)
-	
-	local updater = timer:CreateAnimationGroup()
-	updater:SetLooping('NONE')
-	updater:SetScript('OnFinished', function(self) Timer.UpdateText(timer) end)
-	
-	local a = updater:CreateAnimation('Animation'); a:SetOrder(1)
-	timer.updater = updater	
+
+	timer.OnTimerDone = function() Timer.UpdateText(timer) end
 
 	local text = timer:CreateFontString(nil, 'OVERLAY')
 	text:SetPoint('CENTER', 0, 0)
@@ -156,11 +144,11 @@ end
 
 function Timer.Start(cooldown, start, duration, charges, maxCharges)
 	local remainingCharges = charges or 0
-	
+
 	--start timer
 	if start > 0 and duration > MIN_DURATION and remainingCharges == 0 and (not cooldown.noCooldownCount) then
 		local timer = timers[cooldown] or Timer.Create(cooldown)
-		
+
 		timer.enabled = true
 		timer.start = start
 		timer.duration = duration
@@ -182,7 +170,7 @@ end
 do
 	local f = CreateFrame('Frame'); f:Hide()
 
-	f:SetScript('OnEvent' function()
+	f:SetScript('OnEvent', function()
 		for cooldown, timer in pairs(timers) do
 			Timer.ForceUpdate(timer)
 		end
@@ -193,5 +181,5 @@ do
 	--hook the SetCooldown method of all cooldown frames
 	--ActionButton1Cooldown is used here since its likely to always exist
 	--and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
-	hooksecurefunc(getmetatable(_G['ActionButton1Cooldown']).__index, 'SetCooldown', Timer.Start)	
+	hooksecurefunc(getmetatable(_G['ActionButton1Cooldown']).__index, 'SetCooldown', Timer.Start)
 end
