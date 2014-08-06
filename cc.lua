@@ -12,7 +12,7 @@ local timers = {}
 
 
 --local bindings!
-local C = Addon.Config --pull in the addon table
+local Config = Addon.Config --pull in the addon table
 local UIParent = _G['UIParent']
 local GetTime = _G['GetTime']
 local floor = math.floor
@@ -25,37 +25,25 @@ local DAY, HOUR, MINUTE = 86400, 3600, 60 --used for formatting text
 local DAYISH, HOURISH, MINUTEISH = 3600 * 23.5, 60 * 59.5, 59.5 --used for formatting text at transition points
 local HALFDAYISH, HALFHOURISH, HALFMINUTEISH = DAY/2 + 0.5, HOUR/2 + 0.5, MINUTE/2 + 0.5 --used for calculating next update times
 
---configuration settings
-local FONT_FACE = C.fontFace --what font to use
-local FONT_SIZE = C.fontSize --the base font size to use at a scale of 1
-local MIN_SCALE = C.minScale--the minimum scale we want to show cooldown counts at, anything below this will be hidden
-local MIN_DURATION = C.minDuration --the minimum duration to show cooldown text for
-local EXPIRING_DURATION = C.expiringDuration --the minimum number of seconds a cooldown must be to use to display in the expiring format
-local EXPIRING_FORMAT = C.expiringFormat --format for timers that are soon to expire
-local SECONDS_FORMAT = C.secondsFormat --format for timers that have seconds remaining
-local MINUTES_FORMAT = C.minutesFormat --format for timers that have minutes remaining
-local HOURS_FORMAT = C.hoursFormat --format for timers that have hours remaining
-local DAYS_FORMAT = C.daysFormat --format for timers that have days remaining
-
 --returns both what text to display, and how long until the next update
 local function getTimeText(s)
 	--format text as seconds when at 90 seconds or below
 	if s < MINUTEISH then
 		local seconds = round(s)
-		local formatString = seconds > EXPIRING_DURATION and SECONDS_FORMAT or EXPIRING_FORMAT
+		local formatString = seconds > Config.expiringDuration and Config.secondsFormat or Config.minutesFormat
 		return formatString, seconds, s - (seconds - 0.51)
 	--format text as minutes when below an hour
 	elseif s < HOURISH then
 		local minutes = round(s/MINUTE)
-		return MINUTES_FORMAT, minutes, minutes > 1 and (s - (minutes*MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
+		return Config.minutesFormat, minutes, minutes > 1 and (s - (minutes*MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
 	--format text as hours when below a day
 	elseif s < DAYISH then
 		local hours = round(s/HOUR)
-		return HOURS_FORMAT, hours, hours > 1 and (s - (hours*HOUR - HALFHOURISH)) or (s - HOURISH)
+		return Config.hoursFormat, hours, hours > 1 and (s - (hours*HOUR - HALFHOURISH)) or (s - HOURISH)
 	--format text as days
 	else
 		local days = round(s/DAY)
-		return DAYS_FORMAT, days,  days > 1 and (s - (days*DAY - HALFDAYISH)) or (s - DAYISH)
+		return Config.daysFormat, days,  days > 1 and (s - (days*DAY - HALFDAYISH)) or (s - DAYISH)
 	end
 end
 
@@ -77,7 +65,7 @@ function Timer.UpdateText(self)
 	local remain = self.enabled and (self.duration - (GetTime() - self.start)) or 0
 
 	if round(remain) > 0 then
-		if (self.fontScale * self:GetEffectiveScale() / UIParent:GetScale()) < MIN_SCALE then
+		if (self.fontScale * self:GetEffectiveScale() / UIParent:GetScale()) < Config.minScale then
 			self.text:SetText('')
 			Timer.SetNextUpdate(self, 1)
 		else
@@ -105,10 +93,10 @@ function Timer.OnSizeChanged(self, width, height)
 	end
 
 	self.fontScale = fontScale
-	if fontScale < MIN_SCALE then
+	if fontScale < Config.minScale then
 		self:Hide()
 	else
-		self.text:SetFont(FONT_FACE, fontScale * FONT_SIZE, 'OUTLINE')
+		self.text:SetFont(Config.fontFace, fontScale * Config.fontSize, 'OUTLINE')
 		self.text:SetShadowColor(0, 0, 0, 0.8)
 		self.text:SetShadowOffset(1, -1)
 		if self.enabled then
@@ -131,7 +119,7 @@ function Timer.Create(cooldown)
 
 	local text = timer:CreateFontString(nil, 'OVERLAY')
 	text:SetPoint('CENTER', 0, 0)
-	text:SetFont(FONT_FACE, FONT_SIZE, 'OUTLINE')
+	text:SetFont(Config.fontFace, Config.fontSize, 'OUTLINE')
 	timer.text = text
 
 	Timer.OnSizeChanged(timer, scaler:GetSize())
@@ -146,7 +134,7 @@ function Timer.Start(cooldown, start, duration, charges, maxCharges)
 	local remainingCharges = charges or 0
 
 	--start timer
-	if start > 0 and duration > MIN_DURATION and remainingCharges == 0 and (not cooldown.noCooldownCount) then
+	if start > 0 and duration > Config.minDuration and remainingCharges == 0 and (not cooldown.noCooldownCount) then
 		local timer = timers[cooldown] or Timer.Create(cooldown)
 
 		timer.enabled = true
@@ -156,7 +144,7 @@ function Timer.Start(cooldown, start, duration, charges, maxCharges)
 		timer.maxCharges = maxCharges
 
 		Timer.UpdateText(timer)
-		if timer.fontScale >= MIN_SCALE then timer:Show() end
+		if timer.fontScale >= Config.minScale then timer:Show() end
 	--stop timer
 	else
 		local timer = timers[cooldown]
