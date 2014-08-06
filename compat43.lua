@@ -1,6 +1,7 @@
 --[[
 	In WoW 4.3 and later, action buttons can completely bypass lua for updating cooldown timers
-	This set of code is there to check and force tullaCC to update timers on standard action buttons (henceforth defined as anything that reuses's blizzard's ActionButton.lua code
+	This set of code is there to check and force tullaCC to update timers on standard action buttons 
+	(henceforth defined as anything that reuses's blizzard's ActionButton.lua code)
 --]]
 
 local ActionBarButtonEventsFrame = _G['ActionBarButtonEventsFrame']
@@ -82,5 +83,6 @@ do
 			actionButton_Register(frame)
 		end
 	end
+
 	hooksecurefunc('ActionBarButtonEventsFrame_RegisterFrame', actionButton_Register)
 end
