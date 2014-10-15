@@ -30,7 +30,7 @@ local function getTimeText(s)
 	--format text as seconds when at 90 seconds or below
 	if s < MINUTEISH then
 		local seconds = round(s)
-		local formatString = seconds > Config.expiringDuration and Config.secondsFormat or Config.minutesFormat
+		local formatString = seconds > Config.expiringDuration and Config.secondsFormat or Config.expiringFormat
 		return formatString, seconds, s - (seconds - 0.51)
 	--format text as minutes when below an hour
 	elseif s < HOURISH then
@@ -125,16 +125,23 @@ function Timer.Create(cooldown)
 	Timer.OnSizeChanged(timer, scaler:GetSize())
 	scaler:SetScript('OnSizeChanged', function(self, ...) Timer.OnSizeChanged(timer, ...) end)
 
+	-- prevent display of blizzard cooldown text
+	cooldown:SetHideCountdownNumbers(true) 
+
 	timers[cooldown] = timer
 
 	return timer
 end
 
-function Timer.Start(cooldown, start, duration, charges, maxCharges)
+function Timer.Start(cooldown, start, duration, charges, maxCharges)	
 	local remainingCharges = charges or 0
 
 	--start timer
 	if start > 0 and duration > Config.minDuration and remainingCharges == 0 and (not cooldown.noCooldownCount) then
+		cooldown:SetDrawBling(Config.drawBling)
+		cooldown:SetDrawSwipe(Config.drawSwipe)
+		cooldown:SetDrawEdge(Config.drawEdge)
+
 		local timer = timers[cooldown] or Timer.Create(cooldown)
 
 		timer.enabled = true

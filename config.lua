@@ -6,6 +6,15 @@ local AddonName, Addon = ...
 local _G = _G
 
 local defaults = {
+	-- glowy animation at the end of a cooldown
+	drawBling = false,
+
+	-- show/hide the cooldown animation itself
+	drawEdge = false,
+
+	--show hide a glowy edge on the cooldown
+	drawSwipe = true,
+
 	--what font to use
 	fontFace = function()
 		return _G['STANDARD_TEXT_FONT']
