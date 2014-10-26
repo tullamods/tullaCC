@@ -16,6 +16,7 @@ local Config = Addon.Config --pull in the addon table
 local UIParent = _G['UIParent']
 local GetTime = _G['GetTime']
 local floor = math.floor
+local max = math.max
 local min = math.min
 local round = function(x) return floor(x + 0.5) end
 
@@ -24,6 +25,7 @@ local ICON_SIZE = 36 --the normal size for an icon (don't change this)
 local DAY, HOUR, MINUTE = 86400, 3600, 60 --used for formatting text
 local DAYISH, HOURISH, MINUTEISH = 3600 * 23.5, 60 * 59.5, 59.5 --used for formatting text at transition points
 local HALFDAYISH, HALFHOURISH, HALFMINUTEISH = DAY/2 + 0.5, HOUR/2 + 0.5, MINUTE/2 + 0.5 --used for calculating next update times
+local MIN_DELAY = 0.01
 
 --returns both what text to display, and how long until the next update
 local function getTimeText(s)
@@ -48,7 +50,7 @@ local function getTimeText(s)
 end
 
 function Timer.SetNextUpdate(self, duration)
-	C_Timer.After(duration, self.OnTimerDone)
+	C_Timer.After(max(duration, MIN_DELAY), self.OnTimerDone)
 end
 
 --stops the timer
@@ -126,14 +128,14 @@ function Timer.Create(cooldown)
 	scaler:SetScript('OnSizeChanged', function(self, ...) Timer.OnSizeChanged(timer, ...) end)
 
 	-- prevent display of blizzard cooldown text
-	cooldown:SetHideCountdownNumbers(true) 
+	cooldown:SetHideCountdownNumbers(true)
 
 	timers[cooldown] = timer
 
 	return timer
 end
 
-function Timer.Start(cooldown, start, duration, charges, maxCharges)	
+function Timer.Start(cooldown, start, duration, charges, maxCharges)
 	local remainingCharges = charges or 0
 
 	--start timer
