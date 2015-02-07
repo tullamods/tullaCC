@@ -1,7 +1,7 @@
 --[[
 	In WoW 4.3 and later, action buttons can completely bypass lua for updating cooldown timers
-	This set of code is there to check and force tullaCC to update timers on standard action buttons 
-	(henceforth defined as anything that reuses's blizzard's ActionButton.lua code)
+	This set of code is there to check and force tullaCC to update timers on standard action buttons
+	(henceforth defined as anything that reuses blizzard's ActionButton.lua code)
 --]]
 
 local ActionBarButtonEventsFrame = _G['ActionBarButtonEventsFrame']
@@ -28,10 +28,10 @@ local function cooldown_ShouldUpdateTimer(self, start, duration, charges, maxCha
 	local timer = self.timer
 
 	return not(
-		timer 
-		and timer.start == start 
-		and timer.duration == duration 
-		and timer.charges == charges 
+		timer
+		and timer.start == start
+		and timer.duration == duration
+		and timer.charges == charges
 		and timer.maxCharges == maxCharges
 	)
 end
@@ -39,10 +39,10 @@ end
 local function cooldown_Update(self)
 	local button = self:GetParent()
 	local action = button.action
-	
+
 	local start, duration, enable = GetActionCooldown(action)
 	local charges, maxCharges, chargeStart, chargeDuration = GetActionCharges(action)
-	
+
 	if cooldown_ShouldUpdateTimer(self, start, duration, charges, maxCharges) then
 		Timer.Start(self, start, duration, charges, maxCharges)
 	end
@@ -70,7 +70,7 @@ do
 
 	local function actionButton_Register(frame)
 		local cooldown = frame.cooldown
-		
+
 		if not hooked[cooldown] then
 			cooldown:HookScript('OnShow', cooldown_OnShow)
 			cooldown:HookScript('OnHide', cooldown_OnHide)
