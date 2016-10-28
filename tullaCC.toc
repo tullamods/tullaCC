@@ -1,8 +1,8 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: tullaCooldownCount
 ## Notes: Adds text to cooldowns
 ## Author: Tuller
-## Version: 7.0.0
+## Version: 7.1.0
 config.lua
 cc.lua
 compat43.lua
