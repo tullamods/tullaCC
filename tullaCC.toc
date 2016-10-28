@@ -5,4 +5,3 @@
 ## Version: 7.1.0
 config.lua
 cc.lua
-compat43.lua

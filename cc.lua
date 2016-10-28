@@ -58,8 +58,7 @@ function Timer.Stop(self)
 	self.enabled = nil
 	self.start = nil
 	self.duration = nil
-	self.charges = nil
-	self.maxCharges = nil
+
 	self:Hide()
 end
 
@@ -83,6 +82,7 @@ end
 --forces the given timer to update on the next frame
 function Timer.ForceUpdate(self)
 	Timer.UpdateText(self)
+
 	self:Show()
 end
 
@@ -135,11 +135,9 @@ function Timer.Create(cooldown)
 	return timer
 end
 
-function Timer.Start(cooldown, start, duration, charges, maxCharges)
-	local remainingCharges = charges or 0
-
+function Timer.Start(cooldown, start, duration, enable, forceShowDrawEdge, modRate)
 	--start timer
-	if start > 0 and duration > Config.minDuration and remainingCharges == 0 and (not cooldown.noCooldownCount) then
+	if start > 0 and duration > Config.minDuration and enable == 1 and (not cooldown.noCooldownCount) then
 		cooldown:SetDrawBling(Config.drawBling)
 		cooldown:SetDrawSwipe(Config.drawSwipe)
 		cooldown:SetDrawEdge(Config.drawEdge)
@@ -149,10 +147,8 @@ function Timer.Start(cooldown, start, duration, charges, maxCharges)
 		timer.enabled = true
 		timer.start = start
 		timer.duration = duration
-		timer.charges = remainingCharges
-		timer.maxCharges = maxCharges
-
 		Timer.UpdateText(timer)
+
 		if timer.fontScale >= Config.minScale then timer:Show() end
 	--stop timer
 	else
