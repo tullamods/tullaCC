@@ -137,7 +137,7 @@ end
 
 function Timer.Start(cooldown, start, duration, enable, forceShowDrawEdge, modRate)
 	--start timer
-	if start > 0 and duration > Config.minDuration and enable == 1 and (not cooldown.noCooldownCount) then
+	if start > 0 and duration > Config.minDuration and (not cooldown.noCooldownCount) then
 		cooldown:SetDrawBling(Config.drawBling)
 		cooldown:SetDrawSwipe(Config.drawSwipe)
 		cooldown:SetDrawEdge(Config.drawEdge)
