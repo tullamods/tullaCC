@@ -4,4 +4,5 @@
 ## Author: Tuller
 ## Version: 7.2.0
 config.lua
-cc.lua
+timer.lua
+display.lua

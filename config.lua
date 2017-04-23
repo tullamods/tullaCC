@@ -1,6 +1,4 @@
---[[
-	Curation settings for tullaCC
---]]
+--[[ Configuration settings for tullaCC ]]--
 
 local AddonName, Addon = ...
 local _G = _G
@@ -16,9 +14,7 @@ local defaults = {
 	drawSwipe = true,
 
 	--what font to use
-	fontFace = function()
-		return _G['STANDARD_TEXT_FONT']
-	end,
+	fontFace = function() return _G.STANDARD_TEXT_FONT end,
 
 	--the base font size to use at a scale of 1
 	fontSize = 18,
@@ -45,7 +41,7 @@ local defaults = {
 	hoursFormat = '|cff66ffff%dh|r',
 
 	--format for timers that have days remaining
-	daysFormat = '|cff6666ff%dd|r' 
+	daysFormat = '|cff6666ff%dd|r'
 }
 
 Addon.Config = setmetatable({}, {
