@@ -2,12 +2,12 @@
 
 local AddonName, Addon = ...
 local Timer = {}; Addon.Timer = Timer
-local Timer_mt = {__index = Timer}
+local Timer_mt = { __index = Timer }
 local cache = {}
 
 --local bindings!
-local Config = Addon.Config --pull in the addon table
-local GetTime = _G['GetTime']
+local _C = Addon.Config --pull in the addon table
+local GetTime = _G.GetTime
 local After = _G.C_Timer.After
 local floor = math.floor
 local max = math.max
@@ -25,25 +25,25 @@ local function getTimeText(s)
 	--format text as seconds when at 90 seconds or below
 	if s < MINUTEISH then
 		local seconds = round(s)
-		local formatString = seconds > Config.expiringDuration and Config.secondsFormat or Config.expiringFormat
+		local formatString = seconds > _C.expiringDuration and _C.secondsFormat or _C.expiringFormat
 		return formatString, seconds, s - (seconds - 0.51)
 	--format text as minutes when below an hour
 	elseif s < HOURISH then
 		local minutes = round(s / MINUTE)
-		return Config.minutesFormat, minutes, minutes > 1 and (s - (minutes * MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
+		return _C.minutesFormat, minutes, minutes > 1 and (s - (minutes * MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
 	--format text as hours when below a day
 	elseif s < DAYISH then
 		local hours = round(s / HOUR)
-		return Config.hoursFormat, hours, hours > 1 and (s - (hours * HOUR - HALFHOURISH)) or (s - HOURISH)
+		return _C.hoursFormat, hours, hours > 1 and (s - (hours * HOUR - HALFHOURISH)) or (s - HOURISH)
 	--format text as days
 	else
 		local days = round(s / DAY)
-		return Config.daysFormat, days,  days > 1 and (s - (days * DAY - HALFDAYISH)) or (s - DAYISH)
+		return _C.daysFormat, days,  days > 1 and (s - (days * DAY - HALFDAYISH)) or (s - DAYISH)
 	end
 end
 
 function Timer:GetOrCreate(start, duration)
-	local key = ("%s-%s"):format(start, duration)
+	local key = ("%s-%d"):format(start, duration)
 	local timer = cache[key]
 
 	if not timer then
