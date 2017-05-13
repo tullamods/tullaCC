@@ -3,10 +3,10 @@
 local AddonName, Addon = ...
 local Timer = {}; Addon.Timer = Timer
 local Timer_mt = { __index = Timer }
-local cache = {}
+local active = {}
 
 --local bindings!
-local _C = Addon.Config --pull in the addon table
+local _C = Addon.Config
 local GetTime = _G.GetTime
 local After = _G.C_Timer.After
 local floor = math.floor
@@ -43,27 +43,29 @@ local function getTimeText(s)
 end
 
 function Timer:GetOrCreate(start, duration)
-	local key = ("%s-%d"):format(start, duration)
-	local timer = cache[key]
+	-- start and duration can have milisecond precision, so convert them into ints
+	-- when creating a key to avoid floating point weirdness
+	local key = ("%d-%d"):format(floor(start * 1000), floor(duration * 1000))
 
+	local timer = active[key]
 	if not timer then
 		timer = setmetatable({
+			key = key,
 			start = start,
 			duration = duration,
 			subscribers = {},
 			callback = function() timer:Update() end
 		}, Timer_mt)
 
+		active[key] = timer
 		timer:Update()
-
-		cache[key] = timer
 	end
 
 	return timer
 end
 
 function Timer:Update()
-	if self.destroyed then return end
+	if not active[self.key] then return end
 
 	local remain = (self.duration - (GetTime() - self.start)) or 0
 
@@ -71,7 +73,7 @@ function Timer:Update()
 		local template, value, sleep = getTimeText(remain)
 		local text = template:format(value)
 
-		-- notify timers only when the text of the timer changes
+		-- notify subscribers only when the text of the timer changes
 		if self.text ~= text then
 			self.text = text
 
@@ -102,13 +104,11 @@ function Timer:Unsubscribe(subscriber)
 end
 
 function Timer:Destroy()
-	if self.destroyed then return end
+	if not active[self.key] then return end
 
-	self.destroyed = true
+	active[self.key] = nil
 
 	for subscriber in pairs(self.subscribers) do
 		subscriber:OnTimerDestroyed(self)
 	end
-
-	cache[self] = nil
 end
