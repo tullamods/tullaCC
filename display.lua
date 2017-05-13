@@ -30,15 +30,6 @@ function Display:Create(cooldown)
 		return display
 end
 
-function Display:Destroy()
-	self:Hide()
-
-	if self.timer then
-		self.timer:Unsubscribe(self)
-		self.timer = nil
-	end
-end
-
 -- update text when the timer notifies us of a change
 function Display:OnTimerUpdated(timer)
 	if self.timer == timer and self.text:IsShown() then
@@ -49,6 +40,7 @@ end
 -- hide the display when its parent timer is destroyed
 function Display:OnTimerDestroyed(timer)
 	if self.timer == timer then
+		self.timer = nil
 		self:Hide()
 	end
 end
@@ -115,7 +107,13 @@ do
 			local display = Display:Get(cooldown)
 
 			if display then
-				display:Destroy()
+				display:Hide()
+
+				local timer = display.timer
+				if timer then
+					display.timer = nil
+					timer:Unsubscribe(display)
+				end
 			end
 		end
 	end)
