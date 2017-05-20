@@ -45,7 +45,7 @@ end
 function Timer:GetOrCreate(start, duration)
 	-- start and duration can have milisecond precision, so convert them into ints
 	-- when creating a key to avoid floating point weirdness
-	local key = ("%d-%d"):format(floor(start * 1000), floor(duration * 1000))
+	local key = ("%s-%s"):format(floor(start * 1000), floor(duration * 1000))
 
 	local timer = active[key]
 	if not timer then
