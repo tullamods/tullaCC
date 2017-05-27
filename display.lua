@@ -15,19 +15,19 @@ function Display:Get(cooldown)
 end
 
 function Display:Create(cooldown)
-		local display = setmetatable(CreateFrame('Frame', nil, cooldown), Display_mt)
+	local display = setmetatable(CreateFrame('Frame', nil, cooldown), Display_mt)
 
-		display:SetAllPoints(cooldown)
-		display:SetScript('OnSizeChanged', self.OnSizeChanged)
-		display:Hide()
+	display:SetAllPoints(cooldown)
+	display:SetScript('OnSizeChanged', self.OnSizeChanged)
+	display:Hide()
 
-		local text = display:CreateFontString(nil, 'OVERLAY')
-		text:SetPoint('CENTER', 0, 0)
-		text:SetFont(_C.fontFace, _C.fontSize, 'OUTLINE')
-		display.text = text
+	local text = display:CreateFontString(nil, 'OVERLAY')
+	text:SetPoint('CENTER', 0, 0)
+	text:SetFont(_C.fontFace, _C.fontSize, 'OUTLINE')
+	display.text = text
 
-		displays[cooldown] = display
-		return display
+	displays[cooldown] = display
+	return display
 end
 
 -- update text when the timer notifies us of a change
