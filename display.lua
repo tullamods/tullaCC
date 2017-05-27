@@ -1,7 +1,7 @@
 --[[ A cooldown text display ]]--
 
 local AddonName, Addon = ...
-local _C = Addon.Config
+local C = Addon.Config
 local ICON_SIZE = math.ceil(_G.ActionButton1:GetWidth()) -- the expected size of an icon
 
 local Timer = Addon.Timer
@@ -15,6 +15,12 @@ function Display:Get(cooldown)
 end
 
 function Display:Create(cooldown)
+	-- skin cooldown on display creation
+	cooldown:SetDrawBling(C.drawBling)
+	cooldown:SetDrawSwipe(C.drawSwipe)
+	cooldown:SetDrawEdge(C.drawEdge)
+	cooldown:SetHideCountdownNumbers(true)
+
 	local display = setmetatable(CreateFrame('Frame', nil, cooldown), Display_mt)
 
 	display:SetAllPoints(cooldown)
@@ -23,7 +29,7 @@ function Display:Create(cooldown)
 
 	local text = display:CreateFontString(nil, 'OVERLAY')
 	text:SetPoint('CENTER', 0, 0)
-	text:SetFont(_C.fontFace, _C.fontSize, 'OUTLINE')
+	text:SetFont(C.fontFace, C.fontSize, 'OUTLINE')
 	display.text = text
 
 	displays[cooldown] = display
@@ -55,9 +61,9 @@ function Display:OnSizeChanged(width, height)
 
 		local text = self.text
 
-		if scale >= _C.minScale then
+		if scale >= C.minScale then
 			text:Show()
-			text:SetFont(_C.fontFace, scale * _C.fontSize, 'OUTLINE')
+			text:SetFont(C.fontFace, scale * C.fontSize, 'OUTLINE')
 			text:SetShadowColor(0, 0, 0, 0.8)
 			text:SetShadowOffset(1, -1)
 			text:SetText(self.timer and self.timer.text or '')
@@ -67,54 +73,57 @@ function Display:OnSizeChanged(width, height)
 	end
 end
 
+function Display:Activate(timer)
+	local oldTimer = self.timer
+
+	if oldTimer ~= timer then
+		self.timer = timer
+
+		if oldTimer then
+			oldTimer:Unsubscribe(self)
+		end
+
+		timer:Subscribe(self)
+	end
+
+	self:Show()
+end
+
+function Display:Deactivate()
+	local timer = self.timer
+
+	if timer then
+		timer:Unsubscribe(self)
+		self.timer = nil
+	end
+
+	self:Hide()
+end
+
 -- hook the SetCooldown method of all cooldown frames
 -- ActionButton1Cooldown is used here since its likely to always exist
 -- and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
-do
-	local registered = {}
+hooksecurefunc(getmetatable(_G.ActionButton1Cooldown).__index, 'SetCooldown', function(cooldown, start, duration, modRate)
+	if cooldown.noCooldownCount then return end
 
-	hooksecurefunc(getmetatable(_G.ActionButton1Cooldown).__index, 'SetCooldown', function(cooldown, start, duration, modRate)
-		if cooldown.noCooldownCount then return end
+	local show = (start and start > 0)
+			 and (duration and duration > C.minDuration)
+			 and (modRate == nil or modRate > 0)
 
-		-- reskin cooldown if we've not registered it before
-		if not registered[cooldown] then
-			registered[cooldown] = true
-
-			cooldown:SetDrawBling(_C.drawBling)
-			cooldown:SetDrawSwipe(_C.drawSwipe)
-			cooldown:SetDrawEdge(_C.drawEdge)
-			cooldown:SetHideCountdownNumbers(true)
+	if show then
+		local display = Display:Get(cooldown) or Display:Create(cooldown)
+		display:Activate(Timer:GetOrCreate(start, duration))
+	else
+		local display = Display:Get(cooldown)
+		if display then
+			display:Deactivate()
 		end
+	end
+end)
 
-		local shouldShowDisplay = (start and start > 0) and (duration and duration > _C.minDuration) and (modRate == nil or modRate > 0)
-		if shouldShowDisplay then
-			local display = Display:Get(cooldown) or Display:Create(cooldown)
-			local newTimer = Timer:GetOrCreate(start, duration)
-			local oldTimer = display.timer
-
-			if oldTimer ~= newTimer then
-				display.timer = newTimer
-
-				if oldTimer then
-					oldTimer:Unsubscribe(display)
-				end
-
-				newTimer:Subscribe(display)
-			end
-
-			display:Show()
-		else
-			local display = Display:Get(cooldown)
-
-			if display then
-				display:Hide()
-
-				local timer = display.timer
-				if timer then
-					display.timer = nil
-					timer:Unsubscribe(display)
-				end
-			end
-		end
-	end)
-end
+hooksecurefunc(getmetatable(_G.ActionButton1Cooldown).__index, 'Clear', function(cooldown)
+	local display = Display:Get(cooldown)
+	if display then
+		display:Deactivate()
+	end
+end)

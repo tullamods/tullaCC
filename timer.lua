@@ -4,15 +4,19 @@ local AddonName, Addon = ...
 local Timer = {}; Addon.Timer = Timer
 local Timer_mt = { __index = Timer }
 local active = {}
+local inactive = {}
 
 --local bindings!
-local _C = Addon.Config
+local C = Addon.Config
 local GetTime = _G.GetTime
 local After = _G.C_Timer.After
 local floor = math.floor
 local max = math.max
 local min = math.min
 local round = function(x) return floor(x + 0.5) end
+local next = next
+local tinsert = table.insert
+local tremove = table.remove
 
 --sexy constants!
 local DAY, HOUR, MINUTE = 86400, 3600, 60 --used for formatting text
@@ -25,20 +29,20 @@ local function getTimeText(s)
 	--format text as seconds when at 90 seconds or below
 	if s < MINUTEISH then
 		local seconds = round(s)
-		local formatString = seconds > _C.expiringDuration and _C.secondsFormat or _C.expiringFormat
+		local formatString = seconds > C.expiringDuration and C.secondsFormat or C.expiringFormat
 		return formatString, seconds, s - (seconds - 0.51)
 	--format text as minutes when below an hour
 	elseif s < HOURISH then
 		local minutes = round(s / MINUTE)
-		return _C.minutesFormat, minutes, minutes > 1 and (s - (minutes * MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
+		return C.minutesFormat, minutes, minutes > 1 and (s - (minutes * MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
 	--format text as hours when below a day
 	elseif s < DAYISH then
 		local hours = round(s / HOUR)
-		return _C.hoursFormat, hours, hours > 1 and (s - (hours * HOUR - HALFHOURISH)) or (s - HOURISH)
+		return C.hoursFormat, hours, hours > 1 and (s - (hours * HOUR - HALFHOURISH)) or (s - HOURISH)
 	--format text as days
 	else
 		local days = round(s / DAY)
-		return _C.daysFormat, days,  days > 1 and (s - (days * DAY - HALFDAYISH)) or (s - DAYISH)
+		return C.daysFormat, days,  days > 1 and (s - (days * DAY - HALFDAYISH)) or (s - DAYISH)
 	end
 end
 
@@ -47,15 +51,25 @@ function Timer:GetOrCreate(start, duration)
 	-- when creating a key to avoid floating point weirdness
 	local key = ("%s-%s"):format(floor(start * 1000), floor(duration * 1000))
 
+	-- first, look for an already active timer
+	-- if we don't have one, then either reuse an old one or create a new one
 	local timer = active[key]
 	if not timer then
-		timer = setmetatable({
-			key = key,
-			start = start,
-			duration = duration,
-			subscribers = {},
-			callback = function() timer:Update() end
-		}, Timer_mt)
+		if next(inactive) then
+			timer = tremove(inactive)
+			timer.key = key
+			timer.start = start
+			timer.duration = duration
+			timer.text = nil
+		else
+			timer = setmetatable({
+				key = key,
+				start = start,
+				duration = duration,
+				subscribers = {},
+				callback = function() timer:Update() end
+			}, Timer_mt)
+		end
 
 		active[key] = timer
 		timer:Update()
@@ -68,7 +82,6 @@ function Timer:Update()
 	if not active[self.key] then return end
 
 	local remain = (self.duration - (GetTime() - self.start)) or 0
-
 	if round(remain) > 0 then
 		local template, value, sleep = getTimeText(remain)
 		local text = template:format(value)
@@ -110,5 +123,8 @@ function Timer:Destroy()
 
 	for subscriber in pairs(self.subscribers) do
 		subscriber:OnTimerDestroyed(self)
+		self.subscribers[subscriber] = nil
 	end
+
+	tinsert(inactive, self)
 end
