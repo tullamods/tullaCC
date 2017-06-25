@@ -47,6 +47,7 @@ end
 function Display:OnTimerDestroyed(timer)
 	if self.timer == timer then
 		self.timer = nil
+		self.text:SetText('')
 		self:Hide()
 	end
 end
@@ -97,6 +98,7 @@ function Display:Deactivate()
 		self.timer = nil
 	end
 
+	self.text:SetText('')
 	self:Hide()
 end
 
