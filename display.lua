@@ -106,7 +106,7 @@ end
 -- ActionButton1Cooldown is used here since its likely to always exist
 -- and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
 hooksecurefunc(getmetatable(_G.ActionButton1Cooldown).__index, 'SetCooldown', function(cooldown, start, duration, modRate)
-	if cooldown.noCooldownCount then return end
+	if cooldown.noCooldownCount or cooldown:IsForbidden()  then return end
 
 	local show = (start and start > 0)
 			 and (duration and duration > C.minDuration)
