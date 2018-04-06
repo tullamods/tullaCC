@@ -29,20 +29,20 @@ local function getTimeText(s)
 	--format text as seconds when at 90 seconds or below
 	if s < MINUTEISH then
 		local seconds = round(s)
-		local formatString = seconds > C.expiringDuration and C.secondsFormat or C.expiringFormat
-		return formatString, seconds, s - (seconds - 0.51)
+		local secondsFormat = seconds > C.expiringDuration and C.secondsFormat or C.expiringFormat
+		return secondsFormat:format(seconds), s - (seconds - 0.51)
 	--format text as minutes when below an hour
 	elseif s < HOURISH then
 		local minutes = round(s / MINUTE)
-		return C.minutesFormat, minutes, minutes > 1 and (s - (minutes * MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
+		return C.minutesFormat:format(minutes), minutes > 1 and (s - (minutes * MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
 	--format text as hours when below a day
 	elseif s < DAYISH then
 		local hours = round(s / HOUR)
-		return C.hoursFormat, hours, hours > 1 and (s - (hours * HOUR - HALFHOURISH)) or (s - HOURISH)
+		return C.hoursFormat:format(hours), hours > 1 and (s - (hours * HOUR - HALFHOURISH)) or (s - HOURISH)
 	--format text as days
 	else
 		local days = round(s / DAY)
-		return C.daysFormat, days,  days > 1 and (s - (days * DAY - HALFDAYISH)) or (s - DAYISH)
+		return C.daysFormat:format(days),  days > 1 and (s - (days * DAY - HALFDAYISH)) or (s - DAYISH)
 	end
 end
 
@@ -83,8 +83,7 @@ function Timer:Update()
 
 	local remain = (self.duration - (GetTime() - self.start)) or 0
 	if round(remain) > 0 then
-		local template, value, sleep = getTimeText(remain)
-		local text = template:format(value)
+		local text, sleep = getTimeText(remain)
 
 		-- notify subscribers only when the text of the timer changes
 		if self.text ~= text then
