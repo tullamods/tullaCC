@@ -1,8 +1,10 @@
 --[[ A cooldown text display ]]--
 
-local AddonName, Addon = ...
+local Addon = select(2, ...)
+
 local C = Addon.Config
 local ICON_SIZE = math.ceil(_G.ActionButton1:GetWidth()) -- the expected size of an icon
+local CreateFrame = _G.CreateFrame
 
 local Timer = Addon.Timer
 local Display = CreateFrame('Frame'); Display:Hide()
@@ -17,9 +19,8 @@ end
 function Display:Create(cooldown)
 	-- skin cooldown on display creation
 	cooldown:SetDrawBling(C.drawBling)
-	cooldown:SetDrawSwipe(C.drawSwipe)
+	-- cooldown:SetDrawSwipe(C.drawSwipe)
 	cooldown:SetDrawEdge(C.drawEdge)
-	cooldown:SetHideCountdownNumbers(true)
 
 	local display = setmetatable(CreateFrame('Frame', nil, cooldown), Display_mt)
 
@@ -102,30 +103,43 @@ function Display:Deactivate()
 	self:Hide()
 end
 
--- hook the SetCooldown method of all cooldown frames
--- ActionButton1Cooldown is used here since its likely to always exist
--- and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
-hooksecurefunc(getmetatable(_G.ActionButton1Cooldown).__index, 'SetCooldown', function(cooldown, start, duration, modRate)
-	if cooldown.noCooldownCount or cooldown:IsForbidden()  then return end
+do
+	-- hook the SetCooldown method of all cooldown frames
+	-- ActionButton1Cooldown is used here since its likely to always exist
+	-- and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
+	local Cooldown_MT = getmetatable(_G.ActionButton1Cooldown).__index
+	local hideNumbers = {}
 
-	local show = (start and start > 0)
-			 and (duration and duration > C.minDuration)
-			 and (modRate == nil or modRate > 0)
-
-	if show then
-		local display = Display:Get(cooldown) or Display:Create(cooldown)
-		display:Activate(Timer:GetOrCreate(start, duration))
-	else
+	local function deactivateDisplay(cooldown)
 		local display = Display:Get(cooldown)
 		if display then
 			display:Deactivate()
 		end
 	end
-end)
 
-hooksecurefunc(getmetatable(_G.ActionButton1Cooldown).__index, 'Clear', function(cooldown)
-	local display = Display:Get(cooldown)
-	if display then
-		display:Deactivate()
-	end
-end)
+	hooksecurefunc(Cooldown_MT, 'SetCooldown', function(cooldown, start, duration, modRate)
+		if cooldown.noCooldownCount or cooldown:IsForbidden() or hideNumbers[cooldown] then return end
+
+		local show = (start and start > 0)
+				and (duration and duration > C.minDuration)
+				and (modRate == nil or modRate > 0)
+
+		if show then
+			local display = Display:Get(cooldown) or Display:Create(cooldown)
+			display:Activate(Timer:GetOrCreate(start, duration))
+		else
+			deactivateDisplay(cooldown)
+		end
+	end)
+
+	hooksecurefunc(Cooldown_MT, 'Clear', deactivateDisplay)
+
+	hooksecurefunc(Cooldown_MT, 'SetHideCountdownNumbers', function(cooldown, hide)
+		if hide then
+			hideNumbers[cooldown] = true
+			deactivateDisplay(cooldown)
+		else
+			hideNumbers[cooldown] = nil
+		end
+	end)
+end
