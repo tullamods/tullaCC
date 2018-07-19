@@ -108,12 +108,23 @@ do
 	-- ActionButton1Cooldown is used here since its likely to always exist
 	-- and I'd rather not create my own cooldown frame to preserve a tiny bit of memory
 	local Cooldown_MT = getmetatable(_G.ActionButton1Cooldown).__index
-	local hideNumbers = {}
+	local hideNumbers = {
+		-- _G.PVPQueueFrame.HonorInset.HonorLevelDisplay
+	}
 
 	local function deactivateDisplay(cooldown)
 		local display = Display:Get(cooldown)
 		if display then
 			display:Deactivate()
+		end
+	end
+
+	local function setHideCooldownNumbers(cooldown, hide)
+		if hide then
+			hideNumbers[cooldown] = true
+			deactivateDisplay(cooldown)
+		else
+			hideNumbers[cooldown] = nil
 		end
 	end
 
@@ -134,12 +145,9 @@ do
 
 	hooksecurefunc(Cooldown_MT, 'Clear', deactivateDisplay)
 
-	hooksecurefunc(Cooldown_MT, 'SetHideCountdownNumbers', function(cooldown, hide)
-		if hide then
-			hideNumbers[cooldown] = true
-			deactivateDisplay(cooldown)
-		else
-			hideNumbers[cooldown] = nil
-		end
+	hooksecurefunc(Cooldown_MT, 'SetHideCountdownNumbers', setHideCooldownNumbers)
+
+	hooksecurefunc("CooldownFrame_SetDisplayAsPercentage", function(cooldown)
+		setHideCooldownNumbers(cooldown, true)
 	end)
 end
