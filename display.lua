@@ -28,8 +28,9 @@ function Display:GetOrCreate(owner)
 end
 
 function Display:Create(owner)
-    local display = setmetatable(Addon:CreateHiddenFrame("Frame", nil, owner), Display)
+    local display = setmetatable(CreateFrame("Frame", nil, owner), Display)
 
+    display:Hide()
     display:SetScript("OnSizeChanged", self.OnSizeChanged)
     display.text = display:CreateFontString(nil, "OVERLAY")
     display.text:SetFont(STANDARD_TEXT_FONT, 8, "THIN")

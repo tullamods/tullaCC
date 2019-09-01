@@ -29,4 +29,6 @@ function Addon:ADDON_LOADED(event, name)
     self.Cooldown:SetupHooks()
 end
 
+Addon.eventHandler:RegisterEvent("ADDON_LOADED")
+
 _G[AddonName] = Addon

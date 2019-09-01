@@ -9,7 +9,7 @@ local defaults = {
 	fontSize = 18,
 
 	-- font outline: OUTLINE, THICKOUTLINE, MONOCHROME, or nil
-	fontOutline = nil,
+	fontOutline = "OUTLINE",
 
 	-- font shadow settings
 	fontShadow = {
@@ -20,9 +20,17 @@ local defaults = {
 		a = 1,
 
 		-- offsets
-		x = 1,
-		y = -1
+		x = 0,
+		y = 0
 	},
+
+	-- text positioning
+	anchor = "CENTER",
+	xOff = 0,
+	yOff = 0,
+
+	-- scale text to fit within the cooldown frame
+	scaleText = true,
 
 	-- the minimum scale we want to show cooldown counts at, anything below this will be hidden
 	minScale = 0.6,
@@ -34,13 +42,13 @@ local defaults = {
 	expiringDuration = 5,
 
 	-- when to show tenths of seconds remaining
-	tenthsDuration = 3,
+	tenthsDuration = 0,
 
 	-- when to show both minutes and seconds remaining
 	mmSSDuration = 0,
 
 	--format for timers that are soon to expire
-	tenthsFormat = '0.1f',
+	tenthsFormat = '%0.1f',
 
 	--format for timers that have seconds remaining
 	secondsFormat = '%d',
@@ -64,7 +72,7 @@ local defaults = {
 			g = 0.1,
 			b = 0.1,
 			a = 1,
-			scale = 1.5
+			scale = 1.25
 		},
 
 		-- ability recharging
@@ -73,7 +81,7 @@ local defaults = {
 			g = 1,
 			b = 0.3,
 			a = 0.8,
-			scale = 0.75
+			scale = 0.81
 		},
 
 		-- ability will be ready shortly
@@ -82,7 +90,7 @@ local defaults = {
 			g = 0.1,
 			b = 0.1,
 			a = 1,
-			scale = 1.5
+			scale = 1.25
 		},
 
 		-- less than a minute to go
@@ -100,7 +108,7 @@ local defaults = {
 			g = 1,
 			b = 1,
 			a = 1,
-			scale = 1
+			scale = 0.81
 		},
 
 		-- less than a day to go
@@ -109,7 +117,7 @@ local defaults = {
 			g = 0.7,
 			b = 0.7,
 			a = 0.7,
-			scale = 0.75
+			scale = 0.81
 		},
 
 		-- a day or longer to go
@@ -118,7 +126,7 @@ local defaults = {
 			g = 0.7,
 			b = 0.7,
 			a = 0.7,
-			scale = 0.75
+			scale = 0.81
 		}
 	}
 }
