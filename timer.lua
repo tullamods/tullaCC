@@ -1,129 +1,281 @@
---[[ A pool of objects for determining what text to display for a given cooldown, and notify subscribers when the text change ]]--
+-- A pool of objects for determining what text to display for a given cooldown
+-- and notify subscribers when the text change
 
-local AddonName, Addon = ...
-local Timer = {}; Addon.Timer = Timer
-local Timer_mt = { __index = Timer }
-local active = {}
-local inactive = {}
+-- local bindings!
+local _, Addon = ...
+local After = C_Timer.After
+local GetTime = GetTime
 
---local bindings!
-local C = Addon.Config
-local GetTime = _G.GetTime
-local After = _G.C_Timer.After
-local floor = math.floor
 local max = math.max
 local min = math.min
-local round = function(x) return floor(x + 0.5) end
 local next = next
-local tinsert = table.insert
-local tremove = table.remove
+local strjoin = strjoin
 
---sexy constants!
-local DAY, HOUR, MINUTE = 86400, 3600, 60 --used for formatting text
-local DAYISH, HOURISH, MINUTEISH = 3600 * 23.5, 60 * 59.5, 59.5 --used for formatting text at transition points
-local HALFDAYISH, HALFHOURISH, HALFMINUTEISH = DAY/2 + 0.5, HOUR/2 + 0.5, MINUTE/2 + 0.5 --used for calculating next update times
-local MIN_DELAY = 0.01
+-- time units in ms
+local DAY = 86400000
+local HOUR = 3600000
+local MINUTE = 60000
+local SECOND = 1000
+local TENTHS = 100
+local TICK = 10
 
---returns both what text to display, and how long until the next update
-local function getTimeText(s)
-	--format text as seconds when at 90 seconds or below
-	if s < MINUTEISH then
-		local seconds = round(s)
-		local secondsFormat = seconds > C.expiringDuration and C.secondsFormat or C.expiringFormat
-		return secondsFormat:format(seconds), s - (seconds - 0.51)
-	--format text as minutes when below an hour
-	elseif s < HOURISH then
-		local minutes = round(s / MINUTE)
-		return C.minutesFormat:format(minutes), minutes > 1 and (s - (minutes * MINUTE - HALFMINUTEISH)) or (s - MINUTEISH)
-	--format text as hours when below a day
-	elseif s < DAYISH then
-		local hours = round(s / HOUR)
-		return C.hoursFormat:format(hours), hours > 1 and (s - (hours * HOUR - HALFHOURISH)) or (s - HOURISH)
-	--format text as days
-	else
-		local days = round(s / DAY)
-		return C.daysFormat:format(days),  days > 1 and (s - (days * DAY - HALFDAYISH)) or (s - DAYISH)
-	end
+-- rounding values in ms
+local HALF_DAY = 43200000
+local HALF_HOUR = 1800000
+local HALF_MINUTE = 30000
+local HALF_SECOND = 500
+local HALF_TENTHS = 50
+
+-- transition points in ms
+local HOURS_THRESHOLD = 84600000 -- 23.5 hours
+local MINUTES_THRESHOLD = 3570000 -- 59.5 minutes
+local SECONDS_THRESHOLD = 59500 -- 59.5 seconds
+local SOON_THRESHOLD = 5500 -- 5.5 seconds
+
+-- internal state!
+local active = {}
+
+-- we use a weak table so that inactive timers are cleaned up on gc
+local inactive = setmetatable({}, {__mode = "k" })
+
+local Timer = {}
+
+Timer.__index = Timer
+
+function Timer:GetOrCreate(cooldown)
+    if not cooldown then return end
+
+    local endTime = cooldown._tcc_start * 1000 + cooldown._tcc_duration * 1000
+    local kind = cooldown._tcc_kind
+    local settings = cooldown._tcc_settings
+    local key = ("%d-%s"):format(endTime, kind)
+
+    local timer = active[key]
+    if not timer then
+        timer = self:Restore() or self:Create()
+
+        timer.endTime = endTime
+        timer.key = key
+        timer.kind = kind
+        timer.settings = settings
+        timer.subscribers = {}
+
+        active[key] = timer
+        timer:Update()
+    end
+
+    return timer
 end
 
-function Timer:GetOrCreate(start, duration)
-	-- start and duration can have milisecond precision, so convert them into ints
-	-- when creating a key to avoid floating point weirdness
-	local key = ("%s-%s"):format(floor(start * 1000), floor(duration * 1000))
+function Timer:Restore()
+    local timer = next(inactive)
 
-	-- first, look for an already active timer
-	-- if we don't have one, then either reuse an old one or create a new one
-	local timer = active[key]
-	if not timer then
-		if next(inactive) then
-			timer = tremove(inactive)
-			timer.key = key
-			timer.start = start
-			timer.duration = duration
-			timer.text = nil
-		else
-			timer = setmetatable({
-				key = key,
-				start = start,
-				duration = duration,
-				subscribers = {},
-				callback = function() timer:Update() end
-			}, Timer_mt)
-		end
+    if timer then
+        inactive[timer] = nil
+    end
 
-		active[key] = timer
-		timer:Update()
-	end
-
-	return timer
+    return timer
 end
 
-function Timer:Update()
-	if not active[self.key] then return end
+function Timer:Create()
+    local timer = setmetatable({}, Timer)
 
-	local remain = (self.duration - (GetTime() - self.start)) or 0
-	if round(remain) > 0 then
-		local text, sleep = getTimeText(remain)
+    timer.callback = function() timer:Update() end
 
-		-- notify subscribers only when the text of the timer changes
-		if self.text ~= text then
-			self.text = text
-
-			for subscriber in pairs(self.subscribers) do
-				subscriber:OnTimerUpdated(self)
-			end
-		end
-
-		After(max(sleep, MIN_DELAY), self.callback)
-	else
-		self:Destroy()
-	end
-end
-
-function Timer:Subscribe(subscriber)
-	if self.subscribers[subscriber] then return end
-
-	self.subscribers[subscriber] = true
-	subscriber:OnTimerUpdated(self)
-end
-
-function Timer:Unsubscribe(subscriber)
-	self.subscribers[subscriber] = nil
-
-	if not next(self.subscribers) then
-		self:Destroy()
-	end
+    return timer
 end
 
 function Timer:Destroy()
-	if not active[self.key] then return end
+    if not self.key then return end
 
-	active[self.key] = nil
+    active[self.key] = nil
 
-	for subscriber in pairs(self.subscribers) do
-		subscriber:OnTimerDestroyed(self)
-		self.subscribers[subscriber] = nil
-	end
+    -- clear subscribers
+    for subscriber in pairs(self.subscribers) do
+        subscriber:OnTimerDestroyed(self)
+    end
 
-	tinsert(inactive, self)
+    -- reset fields
+    self.duration = nil
+    self.finished = nil
+    self.key = nil
+    self.kind = nil
+    self.settings = nil
+    self.endTime = nil
+    self.state = nil
+    self.subscribers = nil
+    self.text = nil
+
+    inactive[self] = true
 end
+
+function Timer:Update()
+    if not self.key then return end
+
+    local remain = self.endTime - (GetTime() * SECOND)
+
+    if remain > 0 then
+        local text, textSleep = self:GetTimerText(remain)
+        if self.text ~= text then
+            self.text = text
+            for subscriber in pairs(self.subscribers) do
+                subscriber:OnTimerTextUpdated(self, text)
+            end
+        end
+
+        local state, stateSleep = self:GetTimerState(remain)
+        if self.state ~= state then
+            self.state = state
+            for subscriber in pairs(self.subscribers) do
+                subscriber:OnTimerStateUpdated(self, state)
+            end
+        end
+
+        local sleep = min(textSleep, stateSleep)
+        if sleep < math.huge then
+            After((sleep + TICK) / SECOND, self.callback)
+        end
+    elseif not self.finished then
+        self.finished = true
+
+        for subscriber in pairs(self.subscribers) do
+            subscriber:OnTimerFinished(self)
+        end
+
+        self:Destroy()
+    end
+end
+
+function Timer:Subscribe(subscriber)
+    if not self.key then return end
+
+    if not self.subscribers[subscriber] then
+        self.subscribers[subscriber] = true
+    end
+end
+
+function Timer:Unsubscribe(subscriber)
+    if not self.key then return end
+
+    if self.subscribers[subscriber] then
+        self.subscribers[subscriber] = nil
+
+        if not next(self.subscribers) then
+            self:Destroy()
+        end
+    end
+end
+
+function Timer:GetTimerText(remain)
+    local tenthsThreshold, mmSSThreshold
+
+    local sets = self.settings
+    if sets then
+        tenthsThreshold = (sets.tenthsDuration or 0) * SECOND
+        mmSSThreshold = (sets.mmSSDuration or 0) * SECOND
+    else
+        tenthsThreshold = 0
+        mmSSThreshold = 0
+    end
+
+    if remain < tenthsThreshold then
+        -- tenths of seconds
+        local tenths = (remain + HALF_TENTHS) - (remain + HALF_TENTHS) % TENTHS
+
+        local sleep = remain - (tenths - HALF_TENTHS)
+
+        if tenths > 0 then
+            return sets.tenthsFormat:format(tenths / SECOND), sleep
+        end
+
+        return "", sleep
+    elseif remain < SECONDS_THRESHOLD then
+        -- seconds
+        local seconds = (remain + HALF_SECOND) - (remain + HALF_SECOND) % SECOND
+
+        local sleep = remain - max(
+            seconds - HALF_SECOND,
+            tenthsThreshold
+        )
+
+        if seconds > 0 then
+            return sets.secondsFormat:format(seconds / SECOND), sleep
+        end
+
+        return "", sleep
+    elseif remain < mmSSThreshold then
+        -- MM:SS
+        local seconds = (remain + HALF_SECOND) - (remain + HALF_SECOND) % SECOND
+
+        local sleep = remain - max(
+            seconds - HALF_SECOND,
+            SECONDS_THRESHOLD
+        )
+
+        return sets.mmssFormat:format(seconds / MINUTE, (seconds % MINUTE) / SECOND), sleep
+    elseif remain < MINUTES_THRESHOLD then
+        -- minutes
+        local minutes = (remain + HALF_MINUTE) - (remain + HALF_MINUTE) % MINUTE
+
+        local sleep = remain - max(
+            -- transition point of showing one minute versus another (29.5s, 89.5s, 149.5s, ...)
+            minutes - HALF_MINUTE,
+            -- transition point of displaying minutes to displaying seconds (59.5s)
+            SECONDS_THRESHOLD,
+            -- transition point of displaying MM:SS (user set)
+            mmSSThreshold
+        )
+
+        return sets.minutesFormat:format(minutes / MINUTE), sleep
+    elseif remain < HOURS_THRESHOLD then
+        -- hours
+        local hours = (remain + HALF_HOUR) - (remain + HALF_HOUR) % HOUR
+
+        local sleep = remain - max(
+            hours - HALF_HOUR,
+            MINUTES_THRESHOLD
+        )
+
+        return sets.hoursFormat:format(hours / HOUR), sleep
+    else
+        -- days
+        local days = (remain + HALF_DAY) - (remain + HALF_DAY) % DAY
+
+        local sleep = remain - max(
+            days - HALF_DAY,
+            HOURS_THRESHOLD
+        )
+
+        return sets.daysFormat:format(days / DAY), sleep
+    end
+end
+
+function Timer:GetTimerState(remain)
+    if self.kind == "loc" then
+        return "controlled", math.huge
+    elseif self.kind == "charge" then
+        return "charging", math.huge
+    elseif remain < SOON_THRESHOLD then
+        return "soon", math.huge
+    elseif remain < SECONDS_THRESHOLD then
+        return "seconds", remain - SOON_THRESHOLD
+    elseif remain < MINUTES_THRESHOLD then
+        return "minutes", remain - SECONDS_THRESHOLD
+    elseif remain < HOURS_THRESHOLD then
+        return "hours", remain - MINUTES_THRESHOLD
+    else
+        return "days", remain - HOURS_THRESHOLD
+    end
+end
+
+function Timer:ForActive(method, ...)
+    for _, timer in pairs(active) do
+        local func = timer[method]
+        if type(func) == "function" then
+            func(timer, ...)
+        end
+    end
+end
+
+-- exports
+Addon.Timer = Timer
