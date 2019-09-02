@@ -33,6 +33,7 @@ local defaults = {
 	scaleText = true,
 
 	-- the minimum scale we want to show cooldown counts at, anything below this will be hidden
+	-- this value is a percentage of the size of an ActionButton
 	minScale = 0.6,
 
 	-- the minimum number of seconds a cooldown's duration must be to display text

@@ -239,7 +239,7 @@ function Display:UpdateCooldownTextShown()
     local sizeRatio = self.sizeRatio or self:CalculateSizeRatio()
     local scaleRatio = self.scaleRatio or self:CalculateScaleRatio()
 
-    if (sizeRatio * scaleRatio) >= (sets.minSize or 0) then
+    if (sizeRatio * scaleRatio) >= (sets.minScale or 0) then
         self.text:Show()
     else
         self.text:Hide()
