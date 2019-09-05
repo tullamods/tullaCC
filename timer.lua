@@ -3,13 +3,13 @@
 
 -- local bindings!
 local _, Addon = ...
+
 local After = C_Timer.After
 local GetTime = GetTime
 
 local max = math.max
 local min = math.min
 local next = next
-local strjoin = strjoin
 
 -- time units in ms
 local DAY = 86400000
@@ -30,7 +30,6 @@ local HALF_TENTHS = 50
 local HOURS_THRESHOLD = 84600000 -- 23.5 hours
 local MINUTES_THRESHOLD = 3570000 -- 59.5 minutes
 local SECONDS_THRESHOLD = 59500 -- 59.5 seconds
-local SOON_THRESHOLD = 5500 -- 5.5 seconds
 
 -- internal state!
 local active = {}
@@ -45,7 +44,7 @@ Timer.__index = Timer
 function Timer:GetOrCreate(cooldown)
     if not cooldown then return end
 
-    local endTime = cooldown._tcc_start * 1000 + cooldown._tcc_duration * 1000
+    local endTime = cooldown._tcc_start * SECOND + cooldown._tcc_duration * SECOND
     local kind = cooldown._tcc_kind
     local settings = cooldown._tcc_settings
     local key = ("%d-%s"):format(endTime, kind)
@@ -137,11 +136,6 @@ function Timer:Update()
         end
     elseif not self.finished then
         self.finished = true
-
-        for subscriber in pairs(self.subscribers) do
-            subscriber:OnTimerFinished(self)
-        end
-
         self:Destroy()
     end
 end
@@ -167,16 +161,9 @@ function Timer:Unsubscribe(subscriber)
 end
 
 function Timer:GetTimerText(remain)
-    local tenthsThreshold, mmSSThreshold
-
     local sets = self.settings
-    if sets then
-        tenthsThreshold = (sets.tenthsDuration or 0) * SECOND
-        mmSSThreshold = (sets.mmSSDuration or 0) * SECOND
-    else
-        tenthsThreshold = 0
-        mmSSThreshold = 0
-    end
+    local tenthsThreshold = (sets.tenthsDuration or 0) * SECOND
+    local mmSSThreshold = (sets.mmSSDuration or 0) * SECOND
 
     if remain < tenthsThreshold then
         -- tenths of seconds
@@ -255,25 +242,16 @@ function Timer:GetTimerState(remain)
         return "controlled", math.huge
     elseif self.kind == "charge" then
         return "charging", math.huge
-    elseif remain < SOON_THRESHOLD then
+    elseif remain < (self.settings.expiringThreshold or 0) * SECOND then
         return "soon", math.huge
     elseif remain < SECONDS_THRESHOLD then
-        return "seconds", remain - SOON_THRESHOLD
+        return "seconds", remain - (self.settings.expiringThreshold or 0) * SECOND
     elseif remain < MINUTES_THRESHOLD then
         return "minutes", remain - SECONDS_THRESHOLD
     elseif remain < HOURS_THRESHOLD then
         return "hours", remain - MINUTES_THRESHOLD
     else
         return "days", remain - HOURS_THRESHOLD
-    end
-end
-
-function Timer:ForActive(method, ...)
-    for _, timer in pairs(active) do
-        local func = timer[method]
-        if type(func) == "function" then
-            func(timer, ...)
-        end
     end
 end
 
