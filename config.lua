@@ -102,6 +102,8 @@ function Addon:GetDatabaseDefaults()
 		--format for timers that have days remaining
 		daysFormat = "%dd",
 		-- timer text styles by state
+		-- color and alpha values are percentages between 0 and 1
+		-- scale values are multipliers
 		styles = {
 			-- loss of control
 			controlled = {
@@ -167,6 +169,9 @@ function Addon:GetDatabaseDefaults()
 				-- enable text
 				text = true,
 				-- show cooldown swipes
+				-- can be one of "default" (do whatever the game normally does)
+				-- true (always enable)
+				-- false (always disable)
 				swipe = "default",
 				-- show cooldown edges
 				edge = "default",
