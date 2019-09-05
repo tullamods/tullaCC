@@ -105,22 +105,6 @@ function Addon:GetDatabaseDefaults()
 		-- color and alpha values are percentages between 0 and 1
 		-- scale values are multipliers
 		styles = {
-			-- loss of control
-			controlled = {
-				r = 1,
-				g = 0.1,
-				b = 0.1,
-				a = 1,
-				scale = 1.25
-			},
-			-- ability recharging
-			charging = {
-				r = 0.8,
-				g = 1,
-				b = 0.3,
-				a = 0.8,
-				scale = 0.81
-			},
 			-- ability will be ready shortly
 			soon = {
 				r = 1,
@@ -180,7 +164,7 @@ function Addon:GetDatabaseDefaults()
 			},
 			-- charges
 			charge = {
-				text = true,
+				text = false,
 				swipe = "default",
 				edge = "default",
 				bling = "default"
