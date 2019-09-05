@@ -18,14 +18,19 @@ function Cooldown:CanShow()
         return false
     end
 
-    -- text enabled
+    -- ensure we have settings for this cooldown
     local sets = self._tcc_settings
     if not sets then
         return false
     end
 
     -- at least min duration
-    if duration < sets.minDuration then
+    if sets.minDuration > duration then
+        return false
+    end
+
+    -- hide text if we don't want to display it for this kind of cooldown
+    if not sets.cooldownStyles[self._tcc_kind].text then
         return false
     end
 
@@ -119,6 +124,26 @@ function Cooldown:UpdateText()
     end
 end
 
+function Cooldown:UpdateStyle()
+    local style = self._tcc_settings.cooldownStyles[self._tcc_kind]
+
+    local drawSwipe = style.swipe
+    if drawSwipe ~= "default" then
+        self:SetDrawSwipe(drawSwipe)
+    end
+
+    local drawEdge = style.edge
+    if drawEdge ~= "default" then
+        print("DrawEdge", self:GetName() or self, drawEdge)
+        self:SetDrawEdge(drawEdge)
+    end
+
+    local drawBling = style.bling
+    if drawBling ~= "default" then
+        self:SetDrawBling(drawBling)
+    end
+end
+
 do
     local pending = {}
 
@@ -128,6 +153,7 @@ do
 
     updater:SetScript("OnUpdate", function(self)
         for cooldown in pairs(pending) do
+            Cooldown.UpdateStyle(cooldown)
             Cooldown.UpdateText(cooldown)
             pending[cooldown] = nil
         end
@@ -135,7 +161,7 @@ do
         self:Hide()
     end)
 
-    function Cooldown:RequestUpdateText()
+    function Cooldown:RequestUpdate()
         if not pending[self] then
             pending[self] = true
             updater:Show()
@@ -166,10 +192,10 @@ function Cooldown:SetTimer(start, duration)
     self._tcc_start = start
     self._tcc_duration = duration
     self._tcc_kind = Cooldown.GetKind(self)
-    self._tcc_show = Cooldown.CanShow(self)
     self._tcc_priority = Cooldown.GetPriority(self)
+    self._tcc_show = Cooldown.CanShow(self)
 
-    Cooldown.RequestUpdateText(self)
+    Cooldown.RequestUpdate(self)
 end
 
 function Cooldown:SetNoCooldownCount(disable, owner)
@@ -212,7 +238,7 @@ end
 function Cooldown:OnVisibilityUpdated()
     if self.noCooldownCount or self:IsForbidden() then return end
 
-    Cooldown.RequestUpdateText(self)
+    Cooldown.RequestUpdate(self)
 end
 
 -- misc
