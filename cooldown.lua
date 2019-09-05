@@ -134,7 +134,6 @@ function Cooldown:UpdateStyle()
 
     local drawEdge = style.edge
     if drawEdge ~= "default" then
-        print("DrawEdge", self:GetName() or self, drawEdge)
         self:SetDrawEdge(drawEdge)
     end
 
