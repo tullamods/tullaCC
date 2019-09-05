@@ -238,14 +238,10 @@ function Timer:GetTimerText(remain)
 end
 
 function Timer:GetTimerState(remain)
-    if self.kind == "loc" then
-        return "controlled", math.huge
-    elseif self.kind == "charge" then
-        return "charging", math.huge
-    elseif remain < (self.settings.expiringThreshold or 0) * SECOND then
+    if remain < (self.settings.expiringDuration or 0) * SECOND then
         return "soon", math.huge
     elseif remain < SECONDS_THRESHOLD then
-        return "seconds", remain - (self.settings.expiringThreshold or 0) * SECOND
+        return "seconds", remain - (self.settings.expiringDuration or 0) * SECOND
     elseif remain < MINUTES_THRESHOLD then
         return "minutes", remain - SECONDS_THRESHOLD
     elseif remain < HOURS_THRESHOLD then
