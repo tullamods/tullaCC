@@ -1,145 +1,200 @@
 -- tullaCC configuration settings
-local _, Addon = ...
+local AddonName, Addon = ...
+local DB_KEY = AddonName .. "DB"
+local DB_VERSION = 1
 
-local defaults = {
-	-- what font to use
-	fontFace = function() return STANDARD_TEXT_FONT end,
+local function removeDefaults(tbl, defaults)
+	for k, v in pairs(defaults) do
+		if type(tbl[k]) == "table" and type(v) == "table" then
+			removeDefaults(tbl[k], v)
+			if next(tbl[k]) == nil then
+				tbl[k] = nil
+			end
+		elseif tbl[k] == v then
+			tbl[k] = nil
+		end
+	end
 
-	-- the base font size to use at a scale of 1
-	fontSize = 18,
+	return tbl
+end
 
-	-- font outline: OUTLINE, THICKOUTLINE, MONOCHROME, or nil
-	fontOutline = "OUTLINE",
+local function copyDefaults(tbl, defaults)
+	for k, v in pairs(defaults) do
+		if type(v) == "table" then
+			tbl[k] = copyDefaults(tbl[k] or {}, v)
+		elseif tbl[k] == nil then
+			tbl[k] = v
+		end
+	end
 
-	-- font shadow settings
-	fontShadow = {
-		-- color
-		r = 0,
-		g = 0,
-		b = 0,
-		a = 1,
+	return tbl
+end
 
-		-- offsets
-		x = 0,
-		y = 0
-	},
+function Addon:SetupDatabase()
+	local config = _G[DB_KEY]
 
-	-- text positioning
-	anchor = "CENTER",
-	xOff = 0,
-	yOff = 0,
+	if not config then
+		config = {
+			version = DB_VERSION
+		}
 
-	-- scale text to fit within the cooldown frame
-	scaleText = true,
+		-- luacheck: push ignore 122
+		_G[DB_KEY] = config
+		-- luacheck: pop
+	end
 
-	-- the minimum scale we want to show cooldown counts at, anything below this will be hidden
-	-- this value is a percentage of the size of an ActionButton
-	minScale = 0.6,
+	self.Config = copyDefaults(config, self:GetDatabaseDefaults())
+end
 
-	-- the minimum number of seconds a cooldown's duration must be to display text
-	minDuration = 3,
+function Addon:CleanupDatabase()
+	local config = self.Config
+	if config then
+		removeDefaults(config, self:GetDatabaseDefaults())
+	end
+end
 
-	-- the minimum number of seconds a cooldown must be to display in the expiring format
-	expiringDuration = 5,
-
-	-- when to show tenths of seconds remaining
-	tenthsDuration = 0,
-
-	-- when to show both minutes and seconds remaining
-	mmSSDuration = 0,
-
-	--format for timers that are soon to expire
-	tenthsFormat = '%0.1f',
-
-	--format for timers that have seconds remaining
-	secondsFormat = '%d',
-
-	--format for timers displaying MM:SS
-	mmssFormat = '%d:%02d',
-
-	--format for timers that have minutes remaining
-	minutesFormat = '%dm',
-
-	--format for timers that have hours remaining
-	hoursFormat = '%dh',
-
-	--format for timers that have days remaining
-	daysFormat = '%dd',
-
-	styles = {
-		-- loss of control
-		controlled = {
-			r = 1,
-			g = 0.1,
-			b = 0.1,
+function Addon:GetDatabaseDefaults()
+	return {
+		-- what font to use
+		fontFace = STANDARD_TEXT_FONT,
+		-- the base font size to use at a scale of 1
+		fontSize = 18,
+		-- font outline: OUTLINE, THICKOUTLINE, MONOCHROME, or nil
+		fontOutline = "OUTLINE",
+		-- font shadow settings
+		fontShadow = {
+			-- color
+			r = 0,
+			g = 0,
+			b = 0,
 			a = 1,
-			scale = 1.25
+			-- offsets
+			x = 0,
+			y = 0
 		},
-
-		-- ability recharging
-		charging = {
-			r = 0.8,
-			g = 1,
-			b = 0.3,
-			a = 0.8,
-			scale = 0.81
+		-- text positioning
+		anchor = "CENTER",
+		xOff = 0,
+		yOff = 0,
+		-- scale text to fit within the cooldown frame
+		scaleText = true,
+		-- the minimum scale we want to show cooldown counts at, anything below this will be hidden
+		-- this value is a percentage of the size of an ActionButton
+		minScale = 0.6,
+		-- the minimum number of seconds a cooldown's duration must be to display text
+		minDuration = 3,
+		-- the minimum number of seconds a cooldown must be to display in the expiring format
+		expiringDuration = 5,
+		-- when to show tenths of seconds remaining
+		tenthsDuration = 0,
+		-- when to show both minutes and seconds remaining
+		mmSSDuration = 0,
+		--format for timers that are soon to expire
+		tenthsFormat = "%0.1f",
+		--format for timers that have seconds remaining
+		secondsFormat = "%d",
+		--format for timers displaying MM:SS
+		mmssFormat = "%d:%02d",
+		--format for timers that have minutes remaining
+		minutesFormat = "%dm",
+		--format for timers that have hours remaining
+		hoursFormat = "%dh",
+		--format for timers that have days remaining
+		daysFormat = "%dd",
+		-- timer text styles by state
+		styles = {
+			-- loss of control
+			controlled = {
+				r = 1,
+				g = 0.1,
+				b = 0.1,
+				a = 1,
+				scale = 1.25
+			},
+			-- ability recharging
+			charging = {
+				r = 0.8,
+				g = 1,
+				b = 0.3,
+				a = 0.8,
+				scale = 0.81
+			},
+			-- ability will be ready shortly
+			soon = {
+				r = 1,
+				g = 0.1,
+				b = 0.1,
+				a = 1,
+				scale = 1.25
+			},
+			-- less than a minute to go
+			seconds = {
+				r = 1,
+				g = 1,
+				b = 0.1,
+				a = 1,
+				scale = 1
+			},
+			-- more than a minute to go
+			minutes = {
+				r = 1,
+				g = 1,
+				b = 1,
+				a = 1,
+				scale = 0.81
+			},
+			-- more than an hour to go
+			hours = {
+				r = 1,
+				g = 1,
+				b = 1,
+				a = 1,
+				scale = 0.81
+			},
+			-- more than a day to go
+			days = {
+				r = 1,
+				g = 1,
+				b = 1,
+				a = 1,
+				scale = 0.81
+			}
 		},
-
-		-- ability will be ready shortly
-		soon = {
-			r = 1,
-			g = 0.1,
-			b = 0.1,
-			a = 1,
-			scale = 1.25
-		},
-
-		-- less than a minute to go
-		seconds = {
-			r = 1,
-			g = 1,
-			b = 0.1,
-			a = 1,
-			scale = 1
-		},
-
-		-- less than an hour to go
-		minutes = {
-			r = 1,
-			g = 1,
-			b = 1,
-			a = 1,
-			scale = 0.81
-		},
-
-		-- less than a day to go
-		hours = {
-			r = 0.7,
-			g = 0.7,
-			b = 0.7,
-			a = 0.7,
-			scale = 0.81
-		},
-
-		-- a day or longer to go
-		days = {
-			r = 0.7,
-			g = 0.7,
-			b = 0.7,
-			a = 0.7,
-			scale = 0.81
+		-- cooldown display styles
+		cooldownStyles = {
+			-- normal cooldowns
+			default = {
+				-- enable text
+				text = true,
+				-- show cooldown swipes
+				swipe = "default",
+				-- show cooldown edges
+				edge = "default",
+				-- show cooldown sparkles
+				bling = "default"
+			},
+			-- charges
+			charge = {
+				text = true,
+				swipe = "default",
+				edge = "default",
+				bling = "default"
+			},
+			-- loss of control cooldowns
+			loc = {
+				text = true,
+				swipe = "default",
+				edge = "default",
+				bling = "default"
+			}
 		}
 	}
-}
+end
 
-Addon.Config = setmetatable({}, {
-	__index = function(t, k)
-		local value = defaults[k]
+function Addon:ResetDatabase()
+	-- luacheck: push ignore 122
+	_G[DB_KEY] = nil
+	-- luacheck: pop
 
-		if type(value) == 'function' then
-			return value()
-		end
-
-		return value
-	end
-})
+	self:SetupDatabase()
+end
