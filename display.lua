@@ -168,7 +168,7 @@ function Display:UpdateTimer()
 end
 
 do
-    -- given two cooldown cooldowns, returns the more important one
+    -- given two cooldowns, returns the more important one
     local function cooldown_Compare(lhs, rhs)
         if lhs == rhs then
             return lhs
@@ -183,7 +183,7 @@ do
             return rhs
         end
 
-        -- prefer cooldownProxies ending first
+        -- prefer cooldowns ending first
         local lEnd = lhs._tcc_start + lhs._tcc_duration
         local rEnd = rhs._tcc_start + rhs._tcc_duration
 
