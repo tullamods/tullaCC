@@ -290,25 +290,5 @@ function Display:GetSettings()
     end
 end
 
-function Display:ForAll(method, ...)
-    for _, display in pairs(displays) do
-        local func = display[method]
-        if type(func) == "function" then
-            func(display, ...)
-        end
-    end
-end
-
-function Display:ForActive(method, ...)
-    for _, display in pairs(displays) do
-        if display.timer ~= nil then
-            local func = display[method]
-            if type(func) == "function" then
-                func(display, ...)
-            end
-        end
-    end
-end
-
 -- exports
 Addon.Display = Display
