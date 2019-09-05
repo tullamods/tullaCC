@@ -77,17 +77,6 @@ function Display:OnTimerStateUpdated(timer, state)
     end
 end
 
-function Display:OnTimerFinished(timer)
-    -- if self.timer == timer then
-    --     local cooldown = self.activeCooldown
-
-    --     local settings = cooldown._tcc_settings
-    --     if settings and (settings.minEffectDuration or 0) <= cooldown._tcc_duration then
-    --         Addon.FX:Run(self.activeCooldown, settings.effect or "none")
-    --     end
-    -- end
-end
-
 function Display:OnTimerDestroyed(timer)
     if self.timer == timer then
         self:RemoveCooldown(self.activeCooldown)
