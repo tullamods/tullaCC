@@ -19,18 +19,15 @@ function Cooldown:CanShow()
     end
 
     -- ensure we have settings for this cooldown
-    local sets = self._tcc_settings
-    if not sets then
-        return false
-    end
+    local settings = Addon.Config
 
     -- at least min duration
-    if sets.minDuration > duration then
+    if duration < settings.minDuration then
         return false
     end
 
     -- hide text if we don't want to display it for this kind of cooldown
-    if not sets.cooldownStyles[self._tcc_kind].text then
+    if settings.enableCooldownStyles and not settings.cooldownStyles[self._tcc_kind].text then
         return false
     end
 
@@ -84,7 +81,6 @@ function Cooldown:Initialize()
 
     self._tcc_start = 0
     self._tcc_duration = 0
-    self._tcc_settings = Addon.Config
 
     self:HookScript("OnShow", Cooldown.OnVisibilityUpdated)
     self:HookScript("OnHide", Cooldown.OnVisibilityUpdated)
@@ -125,7 +121,7 @@ function Cooldown:UpdateText()
 end
 
 function Cooldown:UpdateStyle()
-    local style = self._tcc_settings.cooldownStyles[self._tcc_kind]
+    local style = Addon.Config.cooldownStyles[self._tcc_kind]
 
     local drawSwipe = style.swipe
     if drawSwipe ~= "default" then
@@ -151,10 +147,17 @@ do
     updater:Hide()
 
     updater:SetScript("OnUpdate", function(self)
-        for cooldown in pairs(pending) do
-            Cooldown.UpdateStyle(cooldown)
-            Cooldown.UpdateText(cooldown)
-            pending[cooldown] = nil
+        if Addon.Config.enableCooldownStyles then
+            for cooldown in pairs(pending) do
+                Cooldown.UpdateStyle(cooldown)
+                Cooldown.UpdateText(cooldown)
+                pending[cooldown] = nil
+            end
+        else
+            for cooldown in pairs(pending) do
+                Cooldown.UpdateText(cooldown)
+                pending[cooldown] = nil
+            end
         end
 
         self:Hide()

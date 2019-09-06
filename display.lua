@@ -3,12 +3,11 @@ local _, Addon = ...
 
 -- the expected size of an icon
 local ICON_SIZE = 36
-
-local After = _G.C_Timer.After
-local GetTickTime = _G.GetTickTime
+local After = C_Timer.After
+local GetTickTime = GetTickTime
 local min = math.min
-local round = _G.Round
-local UIParent = _G.UIParent
+local round = Round
+local UIParent = UIParent
 
 local displays = {}
 
@@ -37,6 +36,7 @@ function Display:Create(owner)
 
     display.cooldowns = {}
     display.updateScaleCallback = function() display:OnScaleChanged() end
+    display:UpdateCooldownTextShadow()
 
     displays[owner] = display
     return display
@@ -48,8 +48,10 @@ function Display:OnSizeChanged()
     local oldSize = self.sizeRatio
 
     if oldSize ~= self:CalculateSizeRatio() then
-        self:UpdateCooldownTextStyle()
         self:UpdateCooldownTextShown()
+
+        self:UpdateCooldownTextFont()
+        self:UpdateCooldownTextPosition()
     end
 end
 
@@ -59,21 +61,24 @@ function Display:OnScaleChanged()
     local oldScale = self.scaleRatio
 
     if oldScale ~= self:CalculateScaleRatio() then
-        self:UpdateCooldownTextStyle()
         self:UpdateCooldownTextShown()
     end
 end
 
 -- update text when the timer notifies us of a change
-function Display:OnTimerTextUpdated(timer)
-    if self.timer == timer then
-        self.text:SetText(self.timer and self.timer.text or "")
-    end
+function Display:OnTimerTextUpdated(timer, text)
+    if timer ~= self.timer then return end
+
+    self.text:SetText(text or "")
 end
 
 function Display:OnTimerStateUpdated(timer, state)
-    if self.timer == timer then
-        self:UpdateCooldownTextStyle()
+    if timer ~= self.timer then return end
+
+    state = state or "seconds"
+    if self.state ~= state then
+        self.state = state
+        self:UpdateCooldownTextFont()
     end
 end
 
@@ -84,7 +89,12 @@ function Display:OnTimerDestroyed(timer)
 end
 
 function Display:CalculateSizeRatio()
-    local sizeRatio = round(min(self:GetSize())) / ICON_SIZE
+    local sizeRatio
+    if Addon.Config.scaleText then
+        sizeRatio = round(min(self:GetSize())) / ICON_SIZE
+    else
+        sizeRatio = 1
+    end
 
     self.sizeRatio = sizeRatio
 
@@ -120,21 +130,21 @@ function Display:RemoveCooldown(cooldown)
 end
 
 function Display:UpdatePrimaryCooldown()
-    local oldCooldown = self.activeCooldown
-    local newCooldown = self:GetCooldownWithHighestPriority()
+    local cooldown = self:GetCooldownWithHighestPriority()
 
-    if oldCooldown ~= newCooldown then
-        self.activeCooldown = newCooldown
-
-        if newCooldown then
-            self:SetAllPoints(newCooldown)
-            self:SetFrameLevel(newCooldown:GetFrameLevel() + 7)
+    if self.activeCooldown ~= cooldown then
+        if cooldown then
+            self.activeCooldown = cooldown
+            self:SetAllPoints(cooldown)
+            self:SetFrameLevel(cooldown:GetFrameLevel() + 7)
+        else
+            self.activeCooldown = nil
         end
     end
 end
 
 function Display:UpdateTimer()
-    local oldTimer = self.timer and self.timer
+    local oldTimer = self.timer
     local oldTimerKey = oldTimer and oldTimer.key
 
     local newTimer = self.activeCooldown and Addon.Timer:GetOrCreate(self.activeCooldown)
@@ -142,11 +152,11 @@ function Display:UpdateTimer()
 
     -- update subscription if we're watching a different timer
     if oldTimer ~= newTimer then
-        self.timer = newTimer
-
         if oldTimer then
             oldTimer:Unsubscribe(self)
         end
+
+        self.timer = newTimer
     end
 
     -- only show display if we have a timer to watch
@@ -155,8 +165,8 @@ function Display:UpdateTimer()
 
         -- only update text if the timer we're watching has changed
         if newTimerKey ~= oldTimerKey then
-            self:UpdateCooldownText()
-            self.text:SetText(newTimer.text or "")
+            self:OnTimerTextUpdated(newTimer, newTimer.text)
+            self:OnTimerStateUpdated(newTimer, newTimer.state)
             self:Show()
         end
 
@@ -214,69 +224,54 @@ do
     end
 end
 
-function Display:UpdateCooldownText()
-    self:UpdateCooldownTextPosition()
-    self:UpdateCooldownTextStyle()
-    self:UpdateCooldownTextShown()
-end
 
 function Display:UpdateCooldownTextShown()
-    local sets = self:GetSettings()
-    if not sets then return end
-
-    -- compare as ints to avoid floating point math errors
     local sizeRatio = self.sizeRatio or self:CalculateSizeRatio()
     local scaleRatio = self.scaleRatio or self:CalculateScaleRatio()
 
-    if (sizeRatio * scaleRatio) >= (sets.minScale or 0) then
+    if (sizeRatio * scaleRatio) >= (Addon.Config.minScale or 0) then
         self.text:Show()
     else
         self.text:Hide()
     end
 end
 
-function Display:UpdateCooldownTextStyle()
-    local sets = self:GetSettings()
-    if not sets then return end
+function Display:UpdateCooldownTextFont()
+    local sets = Addon.Config
+    local style = sets.styles[self.state or "seconds"]
 
-    local text = self.text
-    local face = sets.fontFace
-    local outline = sets.fontOutline
-    local shadow = sets.fontShadow
-    local style = sets.styles[self.timer and self.timer.state or "seconds"]
-
-    local size = sets.fontSize * style.scale
-    if sets.scaleText then
-        size = size * (self.sizeRatio or self:CalculateSizeRatio())
+    local fontSize = sets.fontSize * style.scale * (self.sizeRatio or self:CalculateSizeRatio())
+    if self.fontSize == fontSize then
+        return
     end
 
-    if size > 0 then
-        if not text:SetFont(face, size, outline) then
-            text:SetFont(STANDARD_TEXT_FONT, size, outline)
-        end
+    self.fontSize = fontSize
 
-        text:SetShadowColor(shadow.r, shadow.g, shadow.b, shadow.a)
-        text:SetShadowOffset(shadow.x, shadow.y)
+    if fontSize > 0 then
+        local text = self.text
+
+        if not text:SetFont(sets.fontFace, fontSize, sets.fontOutline) then
+            text:SetFont(STANDARD_TEXT_FONT, fontSize, sets.fontOutline)
+        end
 
         text:SetTextColor(style.r, style.g, style.b, style.a)
     end
 end
 
-function Display:UpdateCooldownTextPosition()
-    local sets = self:GetSettings()
-    if not sets then return end
+function Display:UpdateCooldownTextShadow()
+    local fontShadow = Addon.Config.fontShadow
+    local text = self.text
 
+    text:SetShadowColor(fontShadow.r, fontShadow.g, fontShadow.b, fontShadow.a)
+    text:SetShadowOffset(fontShadow.x, fontShadow.y)
+end
+
+function Display:UpdateCooldownTextPosition()
+    local sets = Addon.Config
     local sizeRatio = self.sizeRatio or self:CalculateSizeRatio()
 
     self.text:ClearAllPoints()
     self.text:SetPoint(sets.anchor, sets.xOff * sizeRatio, sets.yOff * sizeRatio)
-end
-
-function Display:GetSettings()
-    local cd = self.activeCooldown
-    if cd then
-        return cd._tcc_settings
-    end
 end
 
 -- exports

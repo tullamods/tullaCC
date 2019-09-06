@@ -34,9 +34,7 @@ function Addon:SetupDatabase()
 	local config = _G[DB_KEY]
 
 	if not config then
-		config = {
-			version = DB_VERSION
-		}
+		config = { version = DB_VERSION }
 
 		-- luacheck: push ignore 122
 		_G[DB_KEY] = config
@@ -83,11 +81,11 @@ function Addon:GetDatabaseDefaults()
 		minScale = 0.6,
 		-- the minimum number of seconds a cooldown's duration must be to display text
 		minDuration = 3,
-		-- the minimum number of seconds a cooldown must be to display in the expiring format
-		expiringDuration = 5,
-		-- when to show tenths of seconds remaining
+		-- the minimum number of miliseconds a cooldown must be to display in the expiring format
+		expiringDuration = 5000,
+		-- when to show tenths of seconds remaining, in miliseconds
 		tenthsDuration = 0,
-		-- when to show both minutes and seconds remaining
+		-- when to show both minutes and seconds remaining, in miliseconds
 		mmSSDuration = 0,
 		--format for timers that are soon to expire
 		tenthsFormat = "%0.1f",
@@ -101,7 +99,10 @@ function Addon:GetDatabaseDefaults()
 		hoursFormat = "%dh",
 		--format for timers that have days remaining
 		daysFormat = "%dd",
-		-- timer text styles by state
+
+		-- enables styling text based upon duration remaining
+		enableStyles = true,
+
 		-- color and alpha values are percentages between 0 and 1
 		-- scale values are multipliers
 		styles = {
@@ -146,7 +147,11 @@ function Addon:GetDatabaseDefaults()
 				scale = 0.81
 			}
 		},
-		-- cooldown display styles
+
+		-- enables cooldown style configuration
+		enableCooldownStyles = true,
+
+		-- cooldown styles are stored by cooldown type
 		cooldownStyles = {
 			-- normal cooldowns
 			default = {
