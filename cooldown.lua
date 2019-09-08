@@ -249,6 +249,20 @@ function Cooldown:SetupHooks()
     hooksecurefunc(cooldown_mt, "SetCooldown", Cooldown.OnSetCooldown)
     hooksecurefunc(cooldown_mt, "SetCooldownDuration", Cooldown.OnSetCooldownDuration)
     hooksecurefunc("CooldownFrame_SetDisplayAsPercentage", Cooldown.SetDisplayAsPercentage)
+
+
+    -- this is a hack to make sure that text for charge cooldowns can appear
+    -- above the charge cooldown itself, as charge cooldowns have a TOOLTIP
+    -- frame level
+    hooksecurefunc("StartChargeCooldown", function(parent, ...)
+        local chargeCooldown = parent.chargeCooldown
+        local fs =  parent:GetFrameStrata()
+
+        if chargeCooldown:GetFrameStrata() ~= fs then
+            chargeCooldown:SetFrameStrata(fs)
+            chargeCooldown:SetFrameLevel(parent.cooldown:GetFrameLevel() + 7)
+        end
+    end)
 end
 
 -- exports
