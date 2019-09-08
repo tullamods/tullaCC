@@ -27,7 +27,7 @@ function Cooldown:CanShow()
     end
 
     -- hide text if we don't want to display it for this kind of cooldown
-    if settings.enableCooldownStyles and not settings.cooldownStyles[self._tcc_kind].text then
+    if settings.enableCooldownStyles and not settings.cooldownStyles[self._tcc_kind or "default"].text then
         return false
     end
 
@@ -121,7 +121,7 @@ function Cooldown:UpdateText()
 end
 
 function Cooldown:UpdateStyle()
-    local style = Addon.Config.cooldownStyles[self._tcc_kind]
+    local style = Addon.Config.cooldownStyles[self._tcc_kind or "default"]
 
     local drawSwipe = style.swipe
     if drawSwipe ~= "default" then
@@ -145,7 +145,6 @@ do
     local updater = CreateFrame('Frame')
 
     updater:Hide()
-
     updater:SetScript("OnUpdate", function(self)
         if Addon.Config.enableCooldownStyles then
             for cooldown in pairs(pending) do

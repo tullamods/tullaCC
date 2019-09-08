@@ -133,12 +133,11 @@ function Display:UpdatePrimaryCooldown()
     local cooldown = self:GetCooldownWithHighestPriority()
 
     if self.activeCooldown ~= cooldown then
+        self.activeCooldown = cooldown
+
         if cooldown then
-            self.activeCooldown = cooldown
             self:SetAllPoints(cooldown)
             self:SetFrameLevel(cooldown:GetFrameLevel() + 7)
-        else
-            self.activeCooldown = nil
         end
     end
 end
