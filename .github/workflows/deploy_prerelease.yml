@@ -1,6 +1,6 @@
-name: Prerlease packager
+name: Deploy Prerelease
 
-# when a tag is created with the format vx.y.z-thing or x.y.z-thing
+# when a tag is created with the format vx.y.z or x.y.z
 on:
   push:
     tags:
