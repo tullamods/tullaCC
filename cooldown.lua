@@ -27,7 +27,7 @@ function Cooldown:CanShow()
     end
 
     -- hide text if we don't want to display it for this kind of cooldown
-    if settings.enableCooldownStyles and not settings.cooldownStyles[self._tcc_kind or "default"].text then
+    if settings.enableCooldownStyles and not settings.cooldownStyles[self._tcc_kind or 'default'].text then
         return false
     end
 
@@ -55,19 +55,19 @@ end
 
 function Cooldown:GetKind()
     if self.currentCooldownType == COOLDOWN_TYPE_LOSS_OF_CONTROL then
-        return "loc"
+        return 'loc'
     end
 
     local parent = self:GetParent()
     if parent and parent.chargeCooldown == self then
-        return "charge"
+        return 'charge'
     end
 
-    return "default"
+    return 'default'
 end
 
 function Cooldown:GetPriority()
-    if self._tcc_kind ==  "charge" then
+    if self._tcc_kind == 'charge' then
         return 2
     end
 
@@ -76,11 +76,13 @@ end
 
 -- actions
 function Cooldown:Initialize()
-    if cooldowns[self] then return end
+    if cooldowns[self] then
+        return
+    end
     cooldowns[self] = true
 
-    self:HookScript("OnShow", Cooldown.OnVisibilityUpdated)
-    self:HookScript("OnHide", Cooldown.OnVisibilityUpdated)
+    self:HookScript('OnShow', Cooldown.OnVisibilityUpdated)
+    self:HookScript('OnHide', Cooldown.OnVisibilityUpdated)
 
     -- this is a hack to make sure that text for charge cooldowns can appear
     -- above the charge cooldown itself, as charge cooldowns have a TOOLTIP
@@ -119,7 +121,7 @@ function Cooldown:HideText()
 
     if display then
         display:RemoveCooldown(self)
-        self._tcc_display  = nil
+        self._tcc_display = nil
     end
 end
 
@@ -132,20 +134,20 @@ function Cooldown:UpdateText()
 end
 
 function Cooldown:UpdateStyle()
-    local style = Addon.Config.cooldownStyles[self._tcc_kind or "default"]
+    local style = Addon.Config.cooldownStyles[self._tcc_kind or 'default']
 
     local drawSwipe = style.swipe
-    if drawSwipe ~= "default" then
+    if drawSwipe ~= 'default' then
         self:SetDrawSwipe(drawSwipe)
     end
 
     local drawEdge = style.edge
-    if drawEdge ~= "default" then
+    if drawEdge ~= 'default' then
         self:SetDrawEdge(drawEdge)
     end
 
     local drawBling = style.bling
-    if drawBling ~= "default" then
+    if drawBling ~= 'default' then
         self:SetDrawBling(drawBling)
     end
 end
@@ -156,22 +158,26 @@ do
     local updater = CreateFrame('Frame')
 
     updater:Hide()
-    updater:SetScript("OnUpdate", function(self)
-        if Addon.Config.enableCooldownStyles then
-            for cooldown in pairs(pending) do
-                Cooldown.UpdateStyle(cooldown)
-                Cooldown.UpdateText(cooldown)
-                pending[cooldown] = nil
-            end
-        else
-            for cooldown in pairs(pending) do
-                Cooldown.UpdateText(cooldown)
-                pending[cooldown] = nil
-            end
-        end
 
-        self:Hide()
-    end)
+    updater:SetScript(
+        'OnUpdate',
+        function(self)
+            if Addon.Config.enableCooldownStyles then
+                for cooldown in pairs(pending) do
+                    Cooldown.UpdateStyle(cooldown)
+                    Cooldown.UpdateText(cooldown)
+                    pending[cooldown] = nil
+                end
+            else
+                for cooldown in pairs(pending) do
+                    Cooldown.UpdateText(cooldown)
+                    pending[cooldown] = nil
+                end
+            end
+
+            self:Hide()
+        end
+    )
 
     function Cooldown:RequestUpdate()
         if not pending[self] then
@@ -226,7 +232,9 @@ end
 
 -- events
 function Cooldown:OnSetCooldown(start, duration)
-    if self.noCooldownCount or self:IsForbidden() then return end
+    if self.noCooldownCount or self:IsForbidden() then
+        return
+    end
 
     start = start or 0
     duration = duration or 0
@@ -236,19 +244,25 @@ function Cooldown:OnSetCooldown(start, duration)
 end
 
 function Cooldown:OnSetCooldownDuration()
-    if self.noCooldownCount or self:IsForbidden() then return end
+    if self.noCooldownCount or self:IsForbidden() then
+        return
+    end
 
     Cooldown.Refresh(self)
 end
 
 function Cooldown:SetDisplayAsPercentage()
-    if self.noCooldownCount or self:IsForbidden() then return end
+    if self.noCooldownCount or self:IsForbidden() then
+        return
+    end
 
     Cooldown.SetNoCooldownCount(self, true)
 end
 
 function Cooldown:OnVisibilityUpdated()
-    if self.noCooldownCount or self:IsForbidden() then return end
+    if self.noCooldownCount or self:IsForbidden() then
+        return
+    end
 
     Cooldown.RequestUpdate(self)
 end
@@ -257,9 +271,9 @@ end
 function Cooldown:SetupHooks()
     local cooldown_mt = getmetatable(ActionButton1Cooldown).__index
 
-    hooksecurefunc(cooldown_mt, "SetCooldown", Cooldown.OnSetCooldown)
-    hooksecurefunc(cooldown_mt, "SetCooldownDuration", Cooldown.OnSetCooldownDuration)
-    hooksecurefunc("CooldownFrame_SetDisplayAsPercentage", Cooldown.SetDisplayAsPercentage)
+    hooksecurefunc(cooldown_mt, 'SetCooldown', Cooldown.OnSetCooldown)
+    hooksecurefunc(cooldown_mt, 'SetCooldownDuration', Cooldown.OnSetCooldownDuration)
+    hooksecurefunc('CooldownFrame_SetDisplayAsPercentage', Cooldown.SetDisplayAsPercentage)
 end
 
 -- exports
