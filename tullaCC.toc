@@ -1,6 +1,6 @@
-## Interface: 90005
-## Interface-Classic: 11307
-## Interface-BC: 20501
+## Interface: 90105
+## Interface-BCC: 20502
+## Interface-Classic: 11401
 ## Title: tullaCC
 ## Notes: Adds text to cooldowns
 ## Author: Tuller
