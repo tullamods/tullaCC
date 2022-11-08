@@ -11,6 +11,10 @@ local Cooldown = {}
 
 -- queries
 function Cooldown:CanShow()
+    if self.noCooldownCount then
+        return false
+    end
+    
     local start, duration = self._tcc_start, self._tcc_duration
 
     -- no active cooldown
@@ -222,7 +226,7 @@ function Cooldown:SetNoCooldownCount(disable, owner)
     if disable then
         if not self.noCooldownCount then
             self.noCooldownCount = owner
-            Cooldown.HideText(self)
+            Cooldown.Refresh(self, true)
         end
     elseif self.noCooldownCount == owner then
         self.noCooldownCount = nil
